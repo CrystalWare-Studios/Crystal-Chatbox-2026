@@ -78,7 +78,6 @@
 Need help or want to submit feedback?
 
 - Join the Discord: https://discord.gg/3Qypg9vnEP
-- Open an Issue: https://github.com/Sapph1r3VRC/Crystal-Chatbox/issues
 
 ---
 
