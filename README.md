@@ -1,73 +1,96 @@
-# Crystal Chatbox
+<div align="center">
+  <img src="Images/banner.JPEG" alt="Crystal Chatbox Banner" width="100%" />
 
+  <br><br>
 
-![banner](Images/banner.JPEG)
+  <img src="Images/logo.png" alt="Crystal Chatbox Logo" width="150px" />
 
+  # Crystal Chatbox
+  **A modern VRChat OSC chatbox companion designed for convenience, expression, and modular features.**
+  
+  <br>
 
-**Short tagline:** Compact VR / desktop chatbox with OSC, heart-rate support, and streaming features.
+  [⬇️ **Download Crystal Chatbox (Windows)**](https://github.com/Sapph1r3VRC/Crystal-Chatbox/releases/tag/v1.0.0)
 
+  <br>
 
-> **Important:** By downloading and using Crystal Chatbox you agree to the Terms of Service and Privacy Policy included in this repository.
+  <a href="https://discord.gg/3Qypg9vnEP">
+    <img alt="Discord" src="https://img.shields.io/badge/Join_Community_Discord-5865F2?logo=discord&logoColor=white">
+  </a>
 
-
----
-
-
-## Downloads
-- Latest release (Windows .exe): [v1.0.0 Release](https://github.com/Sapph1r3VRC/Crystal-Chatbox/releases/tag/v1.0.0)
-
-
-**Other platforms:** macOS, Linux, and Android support — **coming soon**. Follow the Discord for progress and early test builds: https://discord.gg/3Qypg9vnEP
-
-
----
-
-
-## Quick start
-1. Download the ZIP from Releases and extract.
-2. Run `CrystalChatbox.exe` (Windows build).
-3. See `FAQ.md` for OS-specific steps and enabling OSC in VRChat.
-
-
-**Prerequisites (Windows):** .NET runtime (if required by your build)
-
+</div>
 
 ---
 
-
-## Features
-- OSC integration for VRChat
-- Window activity and status display
-- Heart-rate support (Pulsoid/third-party token)
-- Chat & streaming overlays
-- Music integration and soundpad controls
-
-
----
-
-
-## Support
-Join our Discord: https://discord.gg/3Qypg9vnEP
-Open an issue: https://github.com/Sapph1r3VRC/Crystal-Chatbox/issues
-
+## ✨ Features
+- 📝 VRChat Chatbox Text Output
+- ❤️ Heart Rate OSC (Pulsoid Integration)
+- 👁️ Active Window Tracking
+- 🔊 Sound/Audio Feedback
+- 🎵 Song + Player Status Support
+- 🤖 AI Message Modules (optional)
+- 🧩 Modular Config System (Customization Friendly)
 
 ---
 
+## 💻 Platform Support
 
-## Legal & Security
-See `LICENSE.md`, `TERMS.md`, `PRIVACY.md`, and `SECURITY.md`.
-
-
----
-
-
-## Contributing
-See `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`.
-
+| Platform | Status | Notes |
+|---------|--------|-------|
+| **Windows (.exe)** | ✅ **Available Now** | Download from Releases |
+| **macOS (.app / .dmg)** | ⏳ Coming Soon | Universal Apple Silicon + Intel planned |
+| **Linux (.AppImage / .deb)** | ⏳ Coming Soon | Targeting Ubuntu + Arch compatibility |
+| **Android (.apk)** | ⏳ Coming Soon | Companion control app planned |
 
 ---
 
+## 📥 Installation
+1. Download the latest `.exe` from the **Releases** page.
+2. Run the application — no installer needed.
+3. In VRChat → **Settings → OSC**, ensure OSC is **Enabled**.
+4. Configure features in the application UI.
 
-## Credits
-Lead developer: Sapph1r3
-Logo: `Images/logo.png`
+---
+
+## 📚 Documentation (Coming Soon)
+- Config Guide
+- Module Setup
+- Troubleshooting
+- OSC Behavior Reference
+
+---
+
+## ❓ FAQ
+
+**Q: My heart rate isn't showing.**  
+→ Ensure Pulsoid tokens are entered correctly & API access is granted.
+
+**Q: Crystal Chatbox doesn’t appear in VRChat.**  
+→ Make sure OSC is enabled in VRChat settings and restart VRChat after enabling.
+
+**Q: Does this get me banned from VRChat?**  
+→ No. Crystal Chatbox sends standard, allowed OSC messages — nothing exploitative.
+
+---
+
+## 🆘 Support
+
+Need help or want to submit feedback?
+
+- Join the Discord: https://discord.gg/3Qypg9vnEP
+- Open an Issue: https://github.com/Sapph1r3VRC/Crystal-Chatbox/issues
+
+---
+
+## 👤 Credits
+Developed by Sapph1r3
+Thanks to friends + testers for feature inspiration and feedback.
+
+---
+
+## ⚖️ Legal Notice
+Crystal Chatbox is source-available and **free for personal use.**  
+Commercial redistribution or resale is not allowed without permission.
+
+See: `LICENSE.md`, `TERMS.md`, and `PRIVACY.md` (coming soon).
+
