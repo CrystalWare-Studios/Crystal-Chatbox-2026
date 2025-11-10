@@ -91,5 +91,5 @@ Thanks to friends + testers for feature inspiration and feedback.
 Crystal Chatbox is source-available and **free for personal use.**  
 Commercial redistribution or resale is not allowed without permission.
 
-See: `LICENSE.md`, `TERMS.md`, and `PRIVACY.md` (coming soon).
+See: `LICENSE.md`, `TERMS.md`, and `PRIVACY.md`
 
