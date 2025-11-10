@@ -10,7 +10,7 @@
   
   <br>
 
-  [⬇️ **Download Crystal Chatbox (Windows)**](https://github.com/Sapph1r3VRC/Crystal-Chatbox/releases/tag/v1.0.0)
+  [⬇️ **Download Crystal Chatbox (Windows)**](https://github.com/DevSapph1r3/Crystal-Chatbox/releases/tag/V1.0.0)
 
   <br>
 
