@@ -54,7 +54,6 @@
 
 ## 📚 Documentation (Coming Soon)
 - Config Guide
-- Module Setup
 - Troubleshooting
 - OSC Behavior Reference
 
