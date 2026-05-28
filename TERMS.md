@@ -1,10 +1,10 @@
-# Terms of Service — Crystal Chatbox
+# Terms of Service — Crystal Client
 
 
-Last updated: 2025
+Last updated: 2026
 
 
-By downloading, installing, or using Crystal Chatbox you agree to these Terms.
+By downloading, installing, or using Crystal Client you agree to these Terms.
 
 
 ## Acceptable Use
@@ -19,4 +19,4 @@ Some features require third-party accounts (Pulsoid, OpenAI, etc.). You are resp
 Software is provided "AS IS". The project maintainers are not liable for damages, data loss, or personal injury.
 
 
-Contact for legal requests or questions: **Discord: BXPQ in https://discord.gg/3Qypg9vnEP**
+Contact for legal requests or questions: **The discord user Ozrv or server tickets in [DC Server Link]**
