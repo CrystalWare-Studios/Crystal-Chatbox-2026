@@ -74,7 +74,7 @@ Need help or want to submit feedback?
 ---
 
 ## 👤 Credits
-Developed by Ozrvv on github
+Developed by Ozrvv on github, 
 Thanks to friends + testers for feature inspiration and feedback.
 
 ---
