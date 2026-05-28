@@ -5,16 +5,16 @@
 
   <img src="Images/logo.png" alt="Crystal Chatbox Logo" width="150px" />
 
-  # Crystal Chatbox
-  **A modern VRChat OSC chatbox companion designed for convenience, expression, and modular features.**
+  # Crystal Client
+  **Crystal Client is a client that includes many features, one being a usefull chatbox better than any you have ever seen!**
   
   <br>
 
-  [⬇️ **Download Crystal Chatbox (Windows)**](https://github.com/DevSapph1r3/Crystal-Chatbox/releases/tag/V1.0.0)
+  [⬇️ **Download Crystal Client (Windows)**](https://github.com/DevSapph1r3/Crystal-Client/releases/tag/V1.0.0)
 
   <br>
 
-  <a href="https://discord.gg/3Qypg9vnEP">
+  <a href="[DC Server Link]">
     <img alt="Discord" src="https://img.shields.io/badge/Join_Community_Discord-5865F2?logo=discord&logoColor=white">
   </a>
 
@@ -23,14 +23,7 @@
 ---
 
 ## ✨ Features
-- 📝 VRChat Chatbox Text Output
-- ❤️ Heart Rate OSC (Pulsoid Integration)
-- 👁️ Active Window Tracking
-- 🔊 Sound/Audio Feedback
-- 🎵 Song + Player Status Support
-- 🤖 AI Message Modules (optional)
-- 🧩 Modular Config System (Customization Friendly)
-
+- [List Features]
 ---
 
 ## 💻 Platform Support
@@ -38,9 +31,9 @@
 | Platform | Status | Notes |
 |---------|--------|-------|
 | **Windows (.exe)** | ✅ **Available Now** | Download from Releases |
-| **macOS (.app / .dmg)** | ⏳ Coming Soon | Universal Apple Silicon + Intel planned |
-| **Linux (.AppImage / .deb)** | ⏳ Coming Soon | Targeting Ubuntu + Arch compatibility |
-| **Android (.apk)** | ⏳ Coming Soon | Companion control app planned |
+| **macOS (.app / .dmg)** | ⏳ Coming Soon |  Apple Silicon + Intel |
+| **Linux (.AppImage / .deb)** | ⏳ Coming Soon | Ubuntu + Arch |
+| **Android (.apk)** | ⏳ Coming Soon | Quest + Iphone |
 
 ---
 
@@ -68,7 +61,7 @@
 → Make sure OSC is enabled in VRChat settings and restart VRChat after enabling.
 
 **Q: Does this get me banned from VRChat?**  
-→ No. Crystal Chatbox sends standard, allowed OSC messages — nothing exploitative.
+→ No. Crystal Client sends standard, allowed OSC messages — nothing exploitative.
 
 ---
 
@@ -76,19 +69,19 @@
 
 Need help or want to submit feedback?
 
-- Join the Discord: https://discord.gg/3Qypg9vnEP
+- Join the Discord: [DC Server Link]
 
 ---
 
 ## 👤 Credits
-Developed by Sapph1r3
+Developed by Ozrvv on github
 Thanks to friends + testers for feature inspiration and feedback.
 
 ---
 
 ## ⚖️ Legal Notice
-Crystal Chatbox is source-available and **free for personal use.**  
-Commercial redistribution or resale is not allowed without permission.
+Crystal Client is source-available and **free for personal use.**  
+Commercial redistribution or resale is not allowed.
 
 See: `LICENSE.md`, `TERMS.md`, and `PRIVACY.md`
 
