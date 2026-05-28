@@ -18,4 +18,4 @@ Last updated: 2026
 Some features rely on third parties (Pulsoid, OpenAI). Their policies apply if you use them.
 
 
-All support or questions handled via Discord only: **OZRV in [DC Server Link]**
+All support or questions handled via Discord only: **The discord user Ozrv or server tickets in [DC Server Link]**
