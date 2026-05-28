@@ -1,7 +1,7 @@
-# Privacy Policy — Crystal Chatbox
+# Privacy Policy — Crystal Client
 
 
-Last updated: 2025
+Last updated: 2026
 
 
 ### What we collect
@@ -18,4 +18,4 @@ Last updated: 2025
 Some features rely on third parties (Pulsoid, OpenAI). Their policies apply if you use them.
 
 
-All support or questions handled via Discord only: **BXPQ in https://discord.gg/3Qypg9vnEP**
+All support or questions handled via Discord only: **OZRV in [DC Server Link]**
