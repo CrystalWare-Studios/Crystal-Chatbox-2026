@@ -62,6 +62,10 @@ replit.md
 .local/
 attached_assets/
 
+# Steam packaging is business/private - kept out of the open-source repo,
+# tracked separately in the local-only project folder
+/steam/
+
 # Removed/disabled native driver - large CMake build tree, not part of any
 # active build target
 _removed_steamvr_driver_crystal/

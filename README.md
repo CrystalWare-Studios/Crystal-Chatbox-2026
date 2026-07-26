@@ -75,7 +75,6 @@ platforms/
   windows/    # PyInstaller entrypoint, run/build scripts
   quest/      # buildozer/p4a entrypoint + foreground-service, build script
   macos/      # PyInstaller entrypoint, run script (self-compile only)
-steam/        # Steam packaging scaffold (see steam/README.md)
 ```
 
 `app/` is the only place application logic lives. Each platform's `main.py` is a thin
