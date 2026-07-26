@@ -1,7 +1,9 @@
 $ErrorActionPreference = "Stop"
 
 $RootDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ChatboxDir = Join-Path $RootDir "Crystal-Chatbox-Source-Code\Crystal Chatbox"
+$ChatboxDir = $RootDir
+$RepoRoot = Split-Path -Parent (Split-Path -Parent $RootDir)
+$AppDir = Join-Path $RepoRoot "app"
 $ChatboxVenv = Join-Path $RootDir ".venv"
 
 function Resolve-Python {
@@ -39,8 +41,8 @@ function Invoke-Python {
     & $Python.Command @($Python.Args + $Arguments)
 }
 
-if (-not (Test-Path $ChatboxDir)) {
-    throw "Chatbox folder not found: $ChatboxDir"
+if (-not (Test-Path $AppDir)) {
+    throw "Shared app source not found: $AppDir"
 }
 
 $Python = Resolve-Python
@@ -56,6 +58,7 @@ $ChatboxPython = Join-Path $ChatboxVenv "Scripts\python.exe"
 
 $env:PYTHONUTF8 = "1"
 $env:PYTHONIOENCODING = "utf-8"
+$env:PYTHONPATH = $AppDir
 
 Write-Host ""
 $DisplayPort = if ($env:PORT) { $env:PORT } else { "5000" }

@@ -2,6 +2,7 @@ import threading
 import time
 import json
 import os
+import re
 import sys
 import random
 import logging
@@ -81,10 +82,12 @@ _error_log_handler = logging.handlers.RotatingFileHandler(
     ERROR_LOG_FILE, maxBytes=1 * 1024 * 1024, backupCount=1, encoding="utf-8"
 )
 _error_log_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+_error_log_handler.setLevel(logging.ERROR)
 logging.getLogger().addHandler(_error_log_handler)
 logging.getLogger().setLevel(logging.ERROR)
+logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
-chatbox_visible = SETTINGS.get("chatbox_visible", False)
+chatbox_visible = True
 show_time = SETTINGS.get("show_time", True)
 show_custom = SETTINGS.get("show_custom", True)
 show_music = SETTINGS.get("show_music", True)
@@ -93,6 +96,9 @@ show_heartrate = SETTINGS.get("show_heartrate", False)
 show_weather = SETTINGS.get("show_weather", False)
 
 settings_changed = False
+if not SETTINGS.get("chatbox_visible", False):
+    SETTINGS["chatbox_visible"] = True
+    settings_changed = True
 if SETTINGS.get("window_tracking_enabled", False):
     if not show_window:
         show_window = True
@@ -134,6 +140,8 @@ typing_state = {
 
 current_time_text = ""
 current_custom_text = SETTINGS.get("custom_texts", ["Custom Message Test"])[0]
+last_raw_chatbox_length = 0
+last_raw_chatbox_limit = 144
 last_message_sent = ""
 text_cycle_index = 0
 next_custom_in = SETTINGS.get("osc_send_interval", 3)
@@ -336,7 +344,9 @@ CHATBOX_TEMPLATE_VARIABLES = [
     "heartrate",
     "weather",
     "system",
-    "afk"
+    "afk",
+    "uptime",
+    "total_time"
 ]
 
 
@@ -857,6 +867,10 @@ def _check_world_preset_switch(live_state, force=False):
         return
 
 
+def _icon_enabled(key):
+    return bool(SETTINGS.get("show_module_icons", True)) and bool(SETTINGS.get(f"{key}_icon_enabled", True))
+
+
 def _format_uptime_duration(total_seconds):
     total_seconds = max(0, int(total_seconds or 0))
     days, rem = divmod(total_seconds, 86400)
@@ -893,7 +907,7 @@ def _format_system_stats_line(stats=None, include_main_icon=True):
         return f"{number:.{decimals}f}"
 
     values = {
-        "system_emoji": SETTINGS.get("system_stats_emoji", "📊") if show_icons and include_main_icon else "",
+        "system_emoji": SETTINGS.get("system_stats_emoji", "📊") if _icon_enabled("system_stats") and include_main_icon else "",
         "cpu_emoji": SETTINGS.get("system_stats_cpu_emoji", "🧠") if show_icons and show_cpu else "",
         "ram_emoji": SETTINGS.get("system_stats_ram_emoji", "💾") if show_icons and show_ram else "",
         "gpu_emoji": SETTINGS.get("system_stats_gpu_emoji", "🎮") if show_icons and show_gpu else "",
@@ -922,8 +936,8 @@ def _format_system_stats_line(stats=None, include_main_icon=True):
     return "\n".join(" ".join(line.split()) for line in rendered.splitlines() if line.strip())
 
 def get_current_preview(advance_page=False):
-    global current_time_text, current_custom_text
-    
+    global current_time_text, current_custom_text, last_raw_chatbox_length, last_raw_chatbox_limit
+
     if show_time:
         tz_setting = SETTINGS.get("timezone", "local")
         if tz_setting == "local":
@@ -941,10 +955,9 @@ def get_current_preview(advance_page=False):
     if show_music and sstate.get("song_text"):
         pos = int(sstate.get("song_pos", 0))
         dur = int(sstate.get("song_dur", 0))
-        show_icons = SETTINGS.get("show_module_icons", True)
         song_emoji = SETTINGS.get("song_emoji", "🎶")
-        icon = f"{song_emoji} " if show_icons and song_emoji else ""
-        if dur > 0:
+        icon = f"{song_emoji} " if _icon_enabled("song") and song_emoji else ""
+        if dur > 0 and SETTINGS.get("music_time_enabled", True):
             elapsed_min, elapsed_sec = divmod(pos, 60)
             total_min, total_sec = divmod(dur, 60)
             song_line = f"{icon}{sstate['song_text']} [{elapsed_min}:{elapsed_sec:02d} / {total_min}:{total_sec:02d}]"
@@ -967,9 +980,8 @@ def get_current_preview(advance_page=False):
     wstate = window_tracker.get_window_state()
     window_line = ""
     if show_window and wstate.get("app_name"):
-        show_icons = SETTINGS.get("show_module_icons", True)
         window_emoji = SETTINGS.get("window_emoji", "💻")
-        icon = f"{window_emoji} " if show_icons and window_emoji else ""
+        icon = f"{window_emoji} " if _icon_enabled("window") and window_emoji else ""
         window_prefix = SETTINGS.get("window_prefix", "Currently on:")
         if window_prefix:
             window_line = f"{icon}{window_prefix} {wstate['app_name']}"
@@ -979,9 +991,8 @@ def get_current_preview(advance_page=False):
     hrstate = heart_rate_monitor.get_heart_rate_state()
     heartrate_line = ""
     if show_heartrate and hrstate.get("is_connected") and hrstate.get("bpm", 0) > 0:
-        show_icons = SETTINGS.get("show_module_icons", True)
         heartrate_emoji = SETTINGS.get("heartrate_emoji", "❤️")
-        icon = f"{heartrate_emoji} " if show_icons and heartrate_emoji else ""
+        icon = f"{heartrate_emoji} " if _icon_enabled("heartrate") and heartrate_emoji else ""
         heartrate_line = f"{icon}{hrstate['bpm']} BPM"
 
     weather_line = ""
@@ -990,7 +1001,7 @@ def get_current_preview(advance_page=False):
         weather_text = weather_service.get_weather_text(temp_unit)
         if weather_text:
             weather_emoji = SETTINGS.get("weather_emoji", "🌤️")
-            if SETTINGS.get("show_module_icons", True) and weather_emoji:
+            if _icon_enabled("weather") and weather_emoji:
                 weather_without_icon = weather_text.split(" ", 1)[1] if " " in weather_text else weather_text
                 weather_line = f"{weather_emoji} {weather_without_icon}"
             else:
@@ -1013,10 +1024,11 @@ def get_current_preview(advance_page=False):
             include_controllers=SETTINGS.get("vr_battery_include_controllers", True),
             include_trackers=SETTINGS.get("vr_battery_include_trackers", False),
             low_battery_threshold=SETTINGS.get("vr_battery_low_threshold", 20),
+            show_charging=SETTINGS.get("vr_battery_show_charging", True),
         )
         if battery_text:
             battery_emoji = SETTINGS.get("vr_battery_emoji", "🔋")
-            if SETTINGS.get("show_module_icons", True) and battery_emoji:
+            if _icon_enabled("vr_battery") and battery_emoji:
                 vr_battery_line = f"{battery_emoji} {battery_text}"
             else:
                 vr_battery_line = battery_text
@@ -1026,7 +1038,7 @@ def get_current_preview(advance_page=False):
         volume_text = volume_monitor.get_volume_text()
         if volume_text:
             volume_emoji = SETTINGS.get("volume_emoji", "🔊")
-            if SETTINGS.get("show_module_icons", True) and volume_emoji:
+            if _icon_enabled("volume") and volume_emoji:
                 volume_line = f"{volume_emoji} {volume_text}"
             else:
                 volume_line = volume_text
@@ -1036,7 +1048,7 @@ def get_current_preview(advance_page=False):
         storage_text = device_status.get_storage_text()
         if storage_text:
             storage_emoji = SETTINGS.get("device_storage_emoji", "💾")
-            if SETTINGS.get("show_module_icons", True) and storage_emoji:
+            if _icon_enabled("device_storage") and storage_emoji:
                 device_storage_line = f"{storage_emoji} {storage_text}"
             else:
                 device_storage_line = storage_text
@@ -1046,13 +1058,22 @@ def get_current_preview(advance_page=False):
         mute_line = SETTINGS.get("mute_indicator_text", "🔇 Muted")
 
     uptime_line = ""
-    if SETTINGS.get("uptime_enabled", False) and crystalware_cloud.is_logged_in():
-        uptime_text = _format_uptime_duration(crystalware_cloud.get_uptime_seconds())
+    if SETTINGS.get("uptime_enabled", False):
+        uptime_text = _format_uptime_duration(session_insights.get_insights()["uptime_seconds"])
         uptime_emoji = SETTINGS.get("uptime_emoji", "⏱️")
-        if SETTINGS.get("show_module_icons", True) and uptime_emoji:
+        if _icon_enabled("uptime") and uptime_emoji:
             uptime_line = f"{uptime_emoji} {uptime_text}"
         else:
             uptime_line = uptime_text
+
+    total_time_line = ""
+    if SETTINGS.get("total_time_enabled", False) and crystalware_cloud.is_logged_in():
+        total_time_text = _format_uptime_duration(crystalware_cloud.get_uptime_seconds())
+        total_time_emoji = SETTINGS.get("total_time_emoji", "📈")
+        if _icon_enabled("total_time") and total_time_emoji:
+            total_time_line = f"{total_time_emoji} {total_time_text}"
+        else:
+            total_time_line = total_time_text
 
     afk_line = ""
     if SETTINGS.get("afk_enabled", False):
@@ -1064,12 +1085,10 @@ def get_current_preview(advance_page=False):
                 SETTINGS.get("afk_show_duration", True)
             )
             if afk_msg:
-                show_icons = SETTINGS.get("show_module_icons", True)
                 afk_emoji = SETTINGS.get("afk_emoji", "💤")
-                icon = f"{afk_emoji} " if show_icons and afk_emoji else ""
+                icon = f"{afk_emoji} " if _icon_enabled("afk") and afk_emoji else ""
                 afk_line = f"{icon}{afk_msg}"
 
-    show_icons = SETTINGS.get("show_module_icons", True)
     lines = []
     layout = SETTINGS.get("layout_order", ["time","custom","vrchat_live","song","window","heartrate","weather","system_stats","afk"])
     
@@ -1089,6 +1108,8 @@ def get_current_preview(advance_page=False):
         layout = list(layout) + ["mute"]
     if SETTINGS.get("uptime_enabled", False) and "uptime" not in layout:
         layout = list(layout) + ["uptime"]
+    if SETTINGS.get("total_time_enabled", False) and "total_time" not in layout:
+        layout = list(layout) + ["total_time"]
 
     tz_setting = SETTINGS.get("timezone", "local")
     now = datetime.now() if tz_setting == "local" else datetime.now(pytz.timezone(str(tz_setting)))
@@ -1096,11 +1117,11 @@ def get_current_preview(advance_page=False):
     custom_emoji = SETTINGS.get("custom_emoji", "💬")
     custom_line = (
         f"{custom_emoji} {processed_custom_text}"
-        if show_icons and custom_emoji and processed_custom_text
+        if _icon_enabled("custom") and custom_emoji and processed_custom_text
         else processed_custom_text
     )
     template_values = {
-        "time": f"{SETTINGS.get('time_emoji', '⏰')} {current_time_text}" if show_icons and SETTINGS.get("time_emoji", "⏰") and current_time_text else current_time_text,
+        "time": f"{SETTINGS.get('time_emoji', '⏰')} {current_time_text}" if _icon_enabled("time") and SETTINGS.get("time_emoji", "⏰") and current_time_text else current_time_text,
         "date": now.strftime("%Y-%m-%d"),
         "custom": custom_line if show_custom else "",
         "vrchat": vrchat_live_line,
@@ -1116,7 +1137,8 @@ def get_current_preview(advance_page=False):
         "device_storage": device_storage_line,
         "afk": afk_line,
         "mute": mute_line,
-        "uptime": uptime_line
+        "uptime": uptime_line,
+        "total_time": total_time_line
     }
 
     if SETTINGS.get("chatbox_template_enabled", False):
@@ -1153,6 +1175,8 @@ def get_current_preview(advance_page=False):
                 lines.append(mute_line)
             elif part == "uptime" and uptime_line:
                 lines.append(uptime_line)
+            elif part == "total_time" and total_time_line:
+                lines.append(total_time_line)
             elif _is_spacer_key(part):
 
 
@@ -1177,18 +1201,21 @@ def get_current_preview(advance_page=False):
             log_error(f"Failed to apply text effect '{text_effect}'", e)
 
     max_len = VRCHAT_CHAR_LIMIT - (SLIM_SUFFIX_LENGTH if SETTINGS.get("slim_chatbox", False) else 0)
+    last_raw_chatbox_length = len(result)
+    last_raw_chatbox_limit = max_len
     frame_style = SETTINGS.get("chatbox_frame", "none")
     frame_emoji = SETTINGS.get("chatbox_frame_emoji", chatbox_frames.DEFAULT_FRAME_EMOJI)
+    custom_frames = SETTINGS.get("custom_frames", {})
     overflow_mode = SETTINGS.get("chatbox_overflow_mode", "smart")
 
 
     if overflow_mode == "page" and frame_style != "none" and len(result) > max_len:
         try:
-            width, lines_per_page = chatbox_frames.plan_frame_capacity(frame_style, max_len, emoji=frame_emoji)
+            width, lines_per_page = chatbox_frames.plan_frame_capacity(frame_style, max_len, emoji=frame_emoji, custom_frames=custom_frames)
             wrapped = chatbox_frames.wrap_for_frame(result, width)
             pages = chatbox_frames.chunk_lines(wrapped, lines_per_page)
             page_text = _get_paged_chunk(pages, page_content_key, advance_page)
-            result = chatbox_frames.apply_frame(page_text, frame_style, max_total_length=max_len, emoji=frame_emoji)
+            result = chatbox_frames.apply_frame(page_text, frame_style, max_total_length=max_len, emoji=frame_emoji, custom_frames=custom_frames)
         except Exception as e:
             log_error(f"Failed to apply paged frame style '{frame_style}'", e)
             result = chatbox_frames.safe_cut(result, max_len)
@@ -1196,14 +1223,14 @@ def get_current_preview(advance_page=False):
 
     if overflow_mode == "scroll" and frame_style != "none":
         try:
-            width, _lines = chatbox_frames.plan_frame_capacity(frame_style, max_len, emoji=frame_emoji)
+            width, _lines = chatbox_frames.plan_frame_capacity(frame_style, max_len, emoji=frame_emoji, custom_frames=custom_frames)
 
             custom_marquee_source = None
             if show_custom and custom_line:
                 all_custom = [t for t in CUSTOM_TEXTS if t and t.strip()]
                 if len(all_custom) > 1:
                     joined = "     •     ".join(replace_variables(t) for t in all_custom)
-                    custom_marquee_source = f"{custom_emoji} {joined}" if show_icons and custom_emoji else joined
+                    custom_marquee_source = f"{custom_emoji} {joined}" if _icon_enabled("custom") and custom_emoji else joined
 
             line_roles = {}
             for role, value in template_values.items():
@@ -1231,7 +1258,7 @@ def get_current_preview(advance_page=False):
                     advanced_lines.add(slot_key)
                 return window.center(w)
 
-            result = chatbox_frames.apply_frame(result, frame_style, max_total_length=max_len, emoji=frame_emoji, line_fit=line_fit)
+            result = chatbox_frames.apply_frame(result, frame_style, max_total_length=max_len, emoji=frame_emoji, line_fit=line_fit, custom_frames=custom_frames)
             return result
         except Exception as e:
             log_error(f"Failed to apply scrolling frame style '{frame_style}'", e)
@@ -1240,7 +1267,7 @@ def get_current_preview(advance_page=False):
 
     if frame_style and frame_style != "none":
         try:
-            result = chatbox_frames.apply_frame(result, frame_style, max_total_length=max_len, emoji=frame_emoji)
+            result = chatbox_frames.apply_frame(result, frame_style, max_total_length=max_len, emoji=frame_emoji, custom_frames=custom_frames)
         except Exception as e:
             log_error(f"Failed to apply frame style '{frame_style}'", e)
 
@@ -1430,7 +1457,7 @@ def format_typed_message(text):
 
     frame_style = SETTINGS.get("chatbox_frame", "none")
     if frame_style != "none":
-        result = chatbox_frames.apply_frame(result, frame_style, max_total_length=max_len, emoji=SETTINGS.get("chatbox_frame_emoji", chatbox_frames.DEFAULT_FRAME_EMOJI))
+        result = chatbox_frames.apply_frame(result, frame_style, max_total_length=max_len, emoji=SETTINGS.get("chatbox_frame_emoji", chatbox_frames.DEFAULT_FRAME_EMOJI), custom_frames=SETTINGS.get("custom_frames", {}))
     elif len(result) > max_len:
         result = smart_truncate_message(result)
 
@@ -1835,9 +1862,12 @@ def create_app():
                 pos = int(sstate.get("song_pos", 0))
                 dur = int(sstate.get("song_dur", 0))
                 if dur > 0:
-                    elapsed_min, elapsed_sec = divmod(pos, 60)
-                    total_min, total_sec = divmod(dur, 60)
-                    song_text = f"{sstate['song_text']} [{elapsed_min}:{elapsed_sec:02d} / {total_min}:{total_sec:02d}]"
+                    if SETTINGS.get("music_time_enabled", True):
+                        elapsed_min, elapsed_sec = divmod(pos, 60)
+                        total_min, total_sec = divmod(dur, 60)
+                        song_text = f"{sstate['song_text']} [{elapsed_min}:{elapsed_sec:02d} / {total_min}:{total_sec:02d}]"
+                    else:
+                        song_text = sstate["song_text"]
                     progress_percent = int((pos / dur) * 100)
                     song_has_duration = True
                 else:
@@ -1902,6 +1932,8 @@ def create_app():
             "progress_string": progress_str,
             "last_message": last_message_sent,
             "preview": preview_msg,
+            "chatbox_length": last_raw_chatbox_length,
+            "chatbox_limit": last_raw_chatbox_limit,
             "album_art": album_art,
             "next_custom": next_custom_in,
             "connection_status": connection_status,
@@ -2378,6 +2410,9 @@ def create_app():
         SETTINGS["vr_battery_include_trackers"] = bool(
             body.get("include_trackers", SETTINGS.get("vr_battery_include_trackers", False))
         )
+        SETTINGS["vr_battery_show_charging"] = bool(
+            body.get("show_charging", SETTINGS.get("vr_battery_show_charging", True))
+        )
         try:
             SETTINGS["vr_battery_low_threshold"] = max(0, min(int(body.get("low_threshold", SETTINGS.get("vr_battery_low_threshold", 20))), 100))
         except Exception:
@@ -2740,6 +2775,119 @@ def create_app():
         if not payload.get("ok"):
             return jsonify(payload), 400
         return jsonify(payload)
+
+    @app.route("/vrcx-plus/vrchat/friends", methods=["GET"])
+    def vrcx_plus_vrchat_friends():
+        try:
+            n = int(request.args.get("n", 200))
+        except Exception:
+            n = 200
+        offline = str(request.args.get("offline", "false")).strip().lower() in {"1", "true", "yes"}
+        payload = vrchat_service.get_friends(n=n, offline=offline)
+        if not payload.get("ok"):
+            return jsonify(payload), 400
+        friends = [vrchat_service.normalize_user_result(f) for f in payload.get("friends", []) if isinstance(f, dict)]
+        online = [f for f in friends if str(f.get("status", "offline")).lower() not in {"offline", ""}]
+        offline_list = [f for f in friends if str(f.get("status", "offline")).lower() in {"offline", ""}]
+        return jsonify({"ok": True, "friends": friends, "online": online, "offline": offline_list})
+
+    @app.route("/vrcx-plus/vrchat/user-search", methods=["POST"])
+    def vrcx_plus_vrchat_user_search():
+        body = request.get_json() or {}
+        query = str(body.get("query", "")).strip()
+        n = int(body.get("n", 40))
+        offset = int(body.get("offset", 0))
+        if len(query) < 2:
+            return jsonify({"ok": False, "error": "Query must be at least 2 chars", "results": []}), 400
+        payload = vrchat_service.search_users(query, n=n, offset=offset)
+        if not payload.get("ok"):
+            return jsonify(payload), 400
+        return jsonify(payload)
+
+    @app.route("/vrcx-plus/vrchat/user/<user_id>", methods=["GET"])
+    def vrcx_plus_vrchat_user_profile(user_id):
+        user_id = str(user_id or "").strip()
+        if not user_id:
+            return _json_error("user_id is required", 400)
+        payload = vrchat_service.get_user_profile(user_id)
+        if not payload.get("ok"):
+            return jsonify(payload), 400
+        return jsonify(payload)
+
+    @app.route("/vrcx-plus/vrchat/instance-roster", methods=["GET"])
+    def vrcx_plus_vrchat_instance_roster():
+        state = _get_vrchat_live_state()
+        return jsonify({
+            "ok": True,
+            "available": not IS_ANDROID,
+            "world_name": state.get("world_name") or state.get("world_id") or "",
+            "world_id": state.get("world_id") or "",
+            "instance": state.get("instance_privacy") or state.get("instance_short") or "",
+            "instance_id": state.get("instance_id") or "",
+            "players": state.get("players", []),
+            "player_count": state.get("player_count", 0),
+        })
+
+    @app.route("/vrcx-plus/vrchat/join", methods=["POST"])
+    def vrcx_plus_vrchat_join():
+        if IS_ANDROID:
+            return _json_error("Joining an instance isn't available on Quest. Use the VRChat app directly.", 400)
+        body = request.get_json() or {}
+        world_id = str(body.get("world_id", "")).strip()
+        instance_id = str(body.get("instance_id", "")).strip()
+        if not world_id:
+            return _json_error("world_id is required", 400)
+        location = f"{world_id}:{instance_id}" if instance_id else world_id
+        uri = f"vrchat://launch?ref=vrchat.com&id={location}"
+        try:
+            import webbrowser
+            opened = webbrowser.open(uri)
+            if not opened:
+                return _json_error("Couldn't open the vrchat:// link. Is VRChat installed?", 400)
+            return jsonify({"ok": True, "uri": uri})
+        except Exception as e:
+            return _json_error(f"Failed to launch VRChat: {e}", 400)
+
+    @app.route("/vrcx-plus/vrchat/favorites", methods=["GET"])
+    def vrcx_plus_vrchat_favorites_list():
+        favorites = SETTINGS.get("vrcx_plus_favorites", {"avatar": [], "user": [], "world": []})
+        return jsonify({"ok": True, "favorites": favorites})
+
+    @app.route("/vrcx-plus/vrchat/favorites", methods=["POST"])
+    def vrcx_plus_vrchat_favorites_add():
+        body = request.get_json() or {}
+        kind = str(body.get("type", "")).strip().lower()
+        if kind not in {"avatar", "user", "world"}:
+            return _json_error("type must be avatar, user, or world", 400)
+        item_id = str(body.get("id", "")).strip()
+        if not item_id:
+            return _json_error("id is required", 400)
+        entry = {
+            "id": item_id,
+            "name": str(body.get("name", ""))[:200],
+            "image": str(body.get("image", ""))[:500],
+            "extra": str(body.get("extra", ""))[:200],
+        }
+        favorites = SETTINGS.setdefault("vrcx_plus_favorites", {"avatar": [], "user": [], "world": []})
+        bucket = favorites.setdefault(kind, [])
+        bucket[:] = [f for f in bucket if f.get("id") != item_id]
+        bucket.insert(0, entry)
+        del bucket[100:]
+        _persist_settings(label="vrcx_plus_favorites")
+        return jsonify({"ok": True, "favorites": favorites})
+
+    @app.route("/vrcx-plus/vrchat/favorites", methods=["DELETE"])
+    def vrcx_plus_vrchat_favorites_remove():
+        body = request.get_json() or {}
+        kind = str(body.get("type", "")).strip().lower()
+        item_id = str(body.get("id", "")).strip()
+        if kind not in {"avatar", "user", "world"} or not item_id:
+            return _json_error("type and id are required", 400)
+        favorites = SETTINGS.setdefault("vrcx_plus_favorites", {"avatar": [], "user": [], "world": []})
+        bucket = favorites.setdefault(kind, [])
+        bucket[:] = [f for f in bucket if f.get("id") != item_id]
+        _persist_settings(label="vrcx_plus_favorites")
+        return jsonify({"ok": True, "favorites": favorites})
 
 
     @app.route("/send", methods=["POST"])
@@ -3263,39 +3411,6 @@ def create_app():
         _persist_settings(label="now_playing_method")
         return jsonify({"ok": True}), 200
 
-    @app.route("/save_emoji_settings", methods=["POST"])
-    def save_emoji_settings():
-        data = request.get_json(force=True)
-        time_emoji = data.get("time_emoji", "⏰")
-        custom_emoji = data.get("custom_emoji", "💬")
-        song_emoji = data.get("song_emoji", "🎶")
-        window_emoji = data.get("window_emoji", "💻")
-        heartrate_emoji = data.get("heartrate_emoji", "❤️")
-        weather_emoji = data.get("weather_emoji", "🌤️")
-        system_stats_emoji = data.get("system_stats_emoji", "📊")
-        afk_emoji = data.get("afk_emoji", "💤")
-        cpu_emoji = data.get("system_stats_cpu_emoji", "🧠")
-        ram_emoji = data.get("system_stats_ram_emoji", "💾")
-        gpu_emoji = data.get("system_stats_gpu_emoji", "🎮")
-        network_emoji = data.get("system_stats_network_emoji", "📡")
-        
-        SETTINGS["time_emoji"] = time_emoji[:5] if time_emoji else "⏰"
-        SETTINGS["custom_emoji"] = custom_emoji[:5] if custom_emoji else "💬"
-        SETTINGS["song_emoji"] = song_emoji[:5] if song_emoji else "🎶"
-        SETTINGS["window_emoji"] = window_emoji[:5] if window_emoji else "💻"
-        SETTINGS["heartrate_emoji"] = heartrate_emoji[:5] if heartrate_emoji else "❤️"
-        SETTINGS["weather_emoji"] = weather_emoji[:5] if weather_emoji else "🌤️"
-        SETTINGS["system_stats_emoji"] = system_stats_emoji[:5] if system_stats_emoji else "📊"
-        SETTINGS["afk_emoji"] = afk_emoji[:5] if afk_emoji else "💤"
-        SETTINGS["system_stats_cpu_emoji"] = cpu_emoji[:5] if cpu_emoji else "🧠"
-        SETTINGS["system_stats_ram_emoji"] = ram_emoji[:5] if ram_emoji else "💾"
-        SETTINGS["system_stats_gpu_emoji"] = gpu_emoji[:5] if gpu_emoji else "🎮"
-        SETTINGS["system_stats_network_emoji"] = network_emoji[:5] if network_emoji else "📡"
-        
-        with open(SETTINGS_FILE, "wb") as f:
-            f.write(json.dumps(SETTINGS, indent=4, ensure_ascii=False).encode("utf-8"))
-        return jsonify({"ok": True}), 200
-    
     @app.route("/save_typing_settings", methods=["POST"])
     def save_typing_settings():
         data = request.get_json(force=True)
@@ -3837,7 +3952,7 @@ def create_app():
 
     @app.route("/get_frame_styles", methods=["GET"])
     def get_frame_styles():
-        styles = chatbox_frames.get_frame_styles()
+        styles = chatbox_frames.get_frame_styles(SETTINGS.get("custom_frames", {}))
         current = SETTINGS.get("chatbox_frame", "none")
         return jsonify({"styles": styles, "current": current}), 200
 
@@ -3848,7 +3963,7 @@ def create_app():
         SETTINGS["chatbox_frame"] = frame_id
         _persist_settings(label="chatbox_frame")
         emoji = SETTINGS.get("chatbox_frame_emoji", chatbox_frames.DEFAULT_FRAME_EMOJI)
-        preview = chatbox_frames.get_frame_preview(frame_id, emoji=emoji)
+        preview = chatbox_frames.get_frame_preview(frame_id, emoji=emoji, custom_frames=SETTINGS.get("custom_frames", {}))
         return jsonify({"ok": True, "frame": frame_id, "preview": preview}), 200
 
     @app.route("/preview_frame", methods=["POST"])
@@ -3856,8 +3971,57 @@ def create_app():
         data = request.get_json()
         frame_id = data.get("frame", "none")
         emoji = str(data.get("emoji") or SETTINGS.get("chatbox_frame_emoji", chatbox_frames.DEFAULT_FRAME_EMOJI))
-        preview = chatbox_frames.get_frame_preview(frame_id, emoji=emoji)
+        custom_frames = dict(SETTINGS.get("custom_frames", {}))
+        draft = data.get("draft")
+        if isinstance(draft, dict):
+            custom_frames = dict(custom_frames)
+            custom_frames["__draft__"] = draft
+            frame_id = "__draft__"
+        preview = chatbox_frames.get_frame_preview(frame_id, emoji=emoji, custom_frames=custom_frames)
         return jsonify({"preview": preview}), 200
+
+    @app.route("/custom_frames", methods=["GET"])
+    def list_custom_frames():
+        return jsonify({"ok": True, "custom_frames": SETTINGS.get("custom_frames", {})}), 200
+
+    @app.route("/custom_frames", methods=["POST"])
+    def save_custom_frame():
+        data = request.get_json(silent=True) or {}
+        name = str(data.get("name", "")).strip()
+        if not name:
+            return _json_error("Enter a name for your border.", 400)
+        mode = str(data.get("mode", "box")).strip()
+        if mode not in chatbox_frames.CUSTOM_FRAME_MODES:
+            return _json_error("Unknown border type.", 400)
+        frame_id = str(data.get("id", "")).strip()
+        custom_frames = SETTINGS.setdefault("custom_frames", {})
+        if not frame_id or frame_id not in custom_frames:
+            slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "border"
+            frame_id = f"custom_{slug}_{secrets.token_hex(3)}"
+        custom_frames[frame_id] = {
+            "name": name[:40],
+            "mode": mode,
+            "top_left": str(data.get("top_left", ""))[:6],
+            "top_right": str(data.get("top_right", ""))[:6],
+            "bottom_left": str(data.get("bottom_left", ""))[:6],
+            "bottom_right": str(data.get("bottom_right", ""))[:6],
+            "horizontal": str(data.get("horizontal", ""))[:6],
+            "vertical": str(data.get("vertical", ""))[:6],
+            "padding": bool(data.get("padding", True)),
+            "emoji": str(data.get("emoji", ""))[:8],
+        }
+        _persist_settings(label="custom_frames")
+        preview = chatbox_frames.get_frame_preview(frame_id, custom_frames=custom_frames)
+        return jsonify({"ok": True, "id": frame_id, "custom_frames": custom_frames, "preview": preview}), 200
+
+    @app.route("/custom_frames/<frame_id>", methods=["DELETE"])
+    def delete_custom_frame(frame_id):
+        custom_frames = SETTINGS.setdefault("custom_frames", {})
+        custom_frames.pop(frame_id, None)
+        if SETTINGS.get("chatbox_frame") == frame_id:
+            SETTINGS["chatbox_frame"] = "none"
+        _persist_settings(label="custom_frames")
+        return jsonify({"ok": True, "custom_frames": custom_frames}), 200
 
     @app.route("/weather_status", methods=["GET"])
     def weather_status():
@@ -3866,11 +4030,11 @@ def create_app():
 
     @app.route("/save_weather_settings", methods=["POST"])
     def save_weather_settings():
-        data = request.get_json()
-        location = data.get("location", "auto")
-        temp_unit = data.get("temp_unit", "F")
-        SETTINGS["weather_location"] = location
-        SETTINGS["weather_temp_unit"] = temp_unit
+        data = request.get_json() or {}
+        if "location" in data:
+            SETTINGS["weather_location"] = data.get("location", "auto")
+        if "temp_unit" in data:
+            SETTINGS["weather_temp_unit"] = data.get("temp_unit", "F")
         with open(SETTINGS_FILE, "wb") as f:
             f.write(json.dumps(SETTINGS, indent=4, ensure_ascii=False).encode("utf-8"))
         return jsonify({"ok": True}), 200
@@ -3880,7 +4044,7 @@ def create_app():
         data = request.get_json(force=True) if request.is_json else {}
         zip_code = str(data.get("zip_code", "")).strip()
         try:
-            resolved = weather_service.resolve_us_zip(zip_code)
+            resolved = weather_service.resolve_location_code(zip_code)
         except ValueError as e:
             return _json_error(str(e), 400)
         except Exception as e:

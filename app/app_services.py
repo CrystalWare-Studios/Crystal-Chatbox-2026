@@ -54,6 +54,7 @@ SEARCH_INDEX = [
     {"section": "Logs", "target": "logs", "title": "Logs and diagnostics", "keywords": "logs errors warnings export diagnostics report troubleshooting"},
     {"section": "Settings", "target": "settings", "title": "Settings", "keywords": "OSC address port startup backup restore reset import export"},
     {"section": "Help", "target": "help", "title": "Setup help", "keywords": "wizard first launch vrchat osc setup connection test"},
+    {"section": "VRChat", "target": "vrchat", "title": "VRChat Explorer", "keywords": "friends avatars ingame instance roster user search favorites join"},
 ]
 
 

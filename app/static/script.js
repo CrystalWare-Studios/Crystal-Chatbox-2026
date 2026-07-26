@@ -11,6 +11,7 @@
         logs: "Logs",
         settings: "Settings",
         leaderboard: "Leaderboard",
+        vrchat: "VRChat",
         help: "Help"
     };
 
@@ -27,10 +28,31 @@
         { key: "volume", label: IS_QUEST ? "Quest Volume" : "System Volume", setting: "show_volume", help: IS_QUEST ? "This Quest headset's media volume." : "Your PC's current output volume." },
         { key: "device_storage", label: "Quest Storage", setting: "show_device_storage", help: "Free storage space left on this Quest headset." },
         { key: "afk", label: "AFK", setting: "afk_enabled", help: "Away message after inactivity." },
-        { key: "uptime", label: "Uptime", setting: "uptime_enabled", help: "Your total time using Crystal Chatbox. Requires being logged in with Discord." }
+        { key: "uptime", label: "Uptime", setting: "uptime_enabled", help: "How long Crystal Chatbox has been running this session. No login needed." },
+        { key: "total_time", label: "Total Time", setting: "total_time_enabled", help: "Your all-time cumulative usage of Crystal Chatbox. Requires being logged in with Discord." }
     ].filter((part) => {
         if (IS_QUEST && ["window", "system_stats"].includes(part.key)) return false;
         if (!IS_QUEST && ["device_storage"].includes(part.key)) return false;
+        return true;
+    });
+
+    const ICON_SETTINGS = [
+        { label: "Time", emojiKey: "time_emoji", enabledKey: "time_icon_enabled", defaultEmoji: "⏰" },
+        { label: "Custom Messages", emojiKey: "custom_emoji", enabledKey: "custom_icon_enabled", defaultEmoji: "💬" },
+        { label: "Music", emojiKey: "song_emoji", enabledKey: "song_icon_enabled", defaultEmoji: "🎶" },
+        { label: "Active Window", emojiKey: "window_emoji", enabledKey: "window_icon_enabled", defaultEmoji: "💻" },
+        { label: "Heart Rate", emojiKey: "heartrate_emoji", enabledKey: "heartrate_icon_enabled", defaultEmoji: "❤️" },
+        { label: "Weather", emojiKey: "weather_emoji", enabledKey: "weather_icon_enabled", defaultEmoji: "🌤️" },
+        { label: "System Stats", emojiKey: "system_stats_emoji", enabledKey: "system_stats_icon_enabled", defaultEmoji: "📊" },
+        { label: IS_QUEST ? "Quest Battery" : "VR Battery", emojiKey: "vr_battery_emoji", enabledKey: "vr_battery_icon_enabled", defaultEmoji: "🔋" },
+        { label: IS_QUEST ? "Quest Volume" : "System Volume", emojiKey: "volume_emoji", enabledKey: "volume_icon_enabled", defaultEmoji: "🔊" },
+        { label: "Quest Storage", emojiKey: "device_storage_emoji", enabledKey: "device_storage_icon_enabled", defaultEmoji: "💾" },
+        { label: "AFK", emojiKey: "afk_emoji", enabledKey: "afk_icon_enabled", defaultEmoji: "💤" },
+        { label: "Uptime", emojiKey: "uptime_emoji", enabledKey: "uptime_icon_enabled", defaultEmoji: "⏱️" },
+        { label: "Total Time", emojiKey: "total_time_emoji", enabledKey: "total_time_icon_enabled", defaultEmoji: "📈" }
+    ].filter((item) => {
+        if (IS_QUEST && item.emojiKey === "window_emoji") return false;
+        if (!IS_QUEST && item.emojiKey === "device_storage_emoji") return false;
         return true;
     });
 
@@ -276,6 +298,7 @@
         bindSetupWizard();
         bindAccountIndicator();
         bindUpdatePanel();
+        bindVrchatExplorer();
         showSection(state.currentSection);
         loadAppearanceOptions();
         loadState({ showSetup: true });
@@ -413,6 +436,10 @@
         }
         if (next === "leaderboard") {
             refreshLeaderboard();
+        }
+        if (next === "vrchat") {
+            refreshVrchatFriends();
+            refreshVrchatFavorites();
         }
     }
 
@@ -684,14 +711,10 @@
         }
         onClick("heart_rate_save_setup", saveHeartRateSettings);
         onClick("location_zip_save", saveLocationZip);
+        onClick("weather_temp_unit_save", saveWeatherTempUnit);
         const section = $("section_integrations");
         if (section) {
             section.addEventListener("click", async (event) => {
-                const avatarSelect = event.target.closest("[data-vrcx-avatar-select]");
-                if (avatarSelect) {
-                    await vrcxSelectAvatar(avatarSelect.dataset.vrcxAvatarSelect || "");
-                    return;
-                }
                 const reactionRemove = event.target.closest("[data-reaction-remove]");
                 if (reactionRemove) {
                     const index = Number(reactionRemove.dataset.reactionRemove);
@@ -741,6 +764,9 @@
         }
         if ($("spotify_music_progress") && document.activeElement !== $("spotify_music_progress")) {
             $("spotify_music_progress").checked = settings.music_progress !== false;
+        }
+        if ($("spotify_music_time") && document.activeElement !== $("spotify_music_time")) {
+            $("spotify_music_time").checked = settings.music_time_enabled !== false;
         }
         if ($("spotify_progress_style") && document.activeElement !== $("spotify_progress_style")) {
             $("spotify_progress_style").value = settings.progress_style || "bar";
@@ -797,6 +823,7 @@
         await saveSettings({
             show_music: !!($("spotify_show_music") && $("spotify_show_music").checked),
             music_progress: !!($("spotify_music_progress") && $("spotify_music_progress").checked),
+            music_time_enabled: !!($("spotify_music_time") && $("spotify_music_time").checked),
             progress_style: $("spotify_progress_style") ? $("spotify_progress_style").value : "bar"
         });
         toast("Music display settings saved.", "success");
@@ -834,6 +861,14 @@
         });
         ["heart_rate_pulsoid_token_setup", "heart_rate_hyperate_id_setup", "heart_rate_custom_api_setup"].forEach((id) => setValue(id, ""));
         toast("Heart rate setup saved.", "success");
+        await loadState({ silent: true });
+    }
+
+    async function saveWeatherTempUnit() {
+        const select = $("weather_temp_unit");
+        const unit = select ? select.value : "F";
+        await api("/save_weather_settings", { method: "POST", body: { temp_unit: unit } });
+        toast("Temperature unit saved.", "success");
         await loadState({ silent: true });
     }
 
@@ -918,6 +953,48 @@
         }
         if ($("appearance_frame_emoji")) {
             $("appearance_frame_emoji").addEventListener("input", refreshFramePreview);
+        }
+        bindCustomFrameBuilder();
+        bindIconSettings();
+    }
+
+    function renderIconSettingsGrid() {
+        const grid = $("icon_settings_grid");
+        if (!grid) return;
+        const settings = getSettings();
+        grid.innerHTML = ICON_SETTINGS.map((item) => `
+            <div class="icon-setting-row">
+                <span>${escapeHtml(item.label)}</span>
+                <input type="text" maxlength="8" data-icon-emoji="${escapeAttr(item.emojiKey)}" value="${escapeAttr(settings[item.emojiKey] || item.defaultEmoji)}">
+                <label class="switch-row"><input type="checkbox" data-icon-enabled="${escapeAttr(item.enabledKey)}" ${settings[item.enabledKey] !== false ? "checked" : ""}> <span>On</span></label>
+            </div>
+        `).join("");
+    }
+
+    function bindIconSettings() {
+        renderIconSettingsGrid();
+        if ($("show_module_icons")) {
+            $("show_module_icons").checked = getSettings().show_module_icons !== false;
+        }
+        onClick("save_icon_settings", saveIconSettings);
+    }
+
+    async function saveIconSettings() {
+        try {
+            const patch = {
+                show_module_icons: $("show_module_icons") ? $("show_module_icons").checked : true
+            };
+            $$("[data-icon-emoji]").forEach((input) => {
+                patch[input.dataset.iconEmoji] = input.value.trim() || undefined;
+            });
+            $$("[data-icon-enabled]").forEach((checkbox) => {
+                patch[checkbox.dataset.iconEnabled] = checkbox.checked;
+            });
+            await saveSettings(patch);
+            await loadState({ silent: true });
+            toast("Icon settings saved.", "success");
+        } catch (error) {
+            toast(error.message || "Could not save icon settings.", "error");
         }
     }
 
@@ -1152,6 +1229,21 @@
         renderCustomMessageEditor(settings);
         renderSystemStatsEditor(settings, runtime);
         renderWindowEditor(settings);
+        renderChatboxBudget(runtime);
+    }
+
+    function renderChatboxBudget(runtime) {
+        const badge = $("chatbox_char_budget");
+        if (!badge) return;
+        const length = Number(runtime.chatbox_length || 0);
+        const limit = Number(runtime.chatbox_limit || 144);
+        badge.textContent = `${length} / ${limit}`;
+        badge.className = `status-pill ${length > limit ? "bad" : length >= limit - 15 ? "warn" : "neutral"}`;
+    }
+
+    function isOverChatboxBudget() {
+        const runtime = (state.app && state.app.runtime) || {};
+        return Number(runtime.chatbox_length || 0) > Number(runtime.chatbox_limit || 144);
     }
 
     function renderMessagePartEditor(settings) {
@@ -1471,12 +1563,39 @@
             } else {
                 await saveSettings({ [setting]: checked });
             }
-            toast(`${messagePartLabel(setting)} ${checked ? "enabled" : "disabled"}.`, "success");
             await loadState({ silent: true });
+            if (checked && isOverChatboxBudget()) {
+                await revertMessagePart(setting);
+                toast(`${messagePartLabel(setting)} would push your chatbox past VRChat's 144 character limit, so it's been turned back off. Turn something else off first, or shorten your custom messages.`, "error");
+                return;
+            }
+            toast(`${messagePartLabel(setting)} ${checked ? "enabled" : "disabled"}.`, "success");
         } catch (error) {
             toast(error.message, "error");
             await loadState({ silent: true });
         }
+    }
+
+    async function revertMessagePart(setting) {
+        if (setting === "system_stats_enabled") {
+            await saveSystemStatsEditor({ enabledOverride: false, quiet: true });
+        } else if (setting === "show_vr_battery") {
+            await api("/vr-battery/toggle", { method: "POST" });
+        } else if (setting === "show_volume") {
+            await api("/volume/toggle", { method: "POST" });
+        } else if (setting === "show_device_storage") {
+            await api("/device-status/toggle", { method: "POST" });
+        } else if (setting === "show_window") {
+            await saveSettings({ show_window: false });
+            await api("/toggle_window_tracking", { method: "POST" });
+        } else if (setting === "show_heartrate") {
+            await saveSettings({ show_heartrate: false, heart_rate_enabled: false });
+        } else if (setting === "show_weather") {
+            await api("/toggle_weather", { method: "POST" });
+        } else {
+            await saveSettings({ [setting]: false });
+        }
+        await loadState({ silent: true });
     }
 
     function renderQuickPhrases(phrases) {
@@ -2312,6 +2431,9 @@
         if ($("vr_battery_include_trackers") && document.activeElement !== $("vr_battery_include_trackers")) {
             $("vr_battery_include_trackers").checked = !!settings.vr_battery_include_trackers;
         }
+        if ($("vr_battery_show_charging") && document.activeElement !== $("vr_battery_show_charging")) {
+            $("vr_battery_show_charging").checked = settings.vr_battery_show_charging !== false;
+        }
         if ($("vr_battery_low_threshold") && document.activeElement !== $("vr_battery_low_threshold")) {
             $("vr_battery_low_threshold").value = settings.vr_battery_low_threshold ?? 20;
         }
@@ -2411,11 +2533,15 @@
     async function runIntegrationAction(action) {
         try {
             const quietActions = new Set([
-                "vrcx_avatar_search",
                 "refresh_vrchat_live",
                 "refresh_vr_battery",
                 "refresh_volume",
-                "refresh_device_status"
+                "refresh_device_status",
+                "vrchat_friends_refresh",
+                "vrchat_avatar_explorer_search",
+                "vrchat_roster_refresh",
+                "vrchat_roster_join",
+                "vrchat_user_search"
             ]);
             if (action === "test_osc") return testOsc();
             if (action === "spotify_connect") {
@@ -2427,7 +2553,6 @@
             if (action === "toggle_window") await api("/toggle_window_tracking", { method: "POST" });
             if (action === "toggle_system_stats") await api("/toggle_system_stats", { method: "POST" });
             if (action === "vrcx_avatar_provider_save") await vrcxSaveAvatarProvider();
-            if (action === "vrcx_avatar_search") await vrcxAvatarSearch();
             if (action === "toggle_vrchat_live") await api("/vrchat-live/toggle", { method: "POST" });
             if (action === "refresh_vrchat_live") await api("/vrchat-live/refresh", { method: "POST" });
             if (action === "save_vrchat_live_settings") await saveVrchatLiveSettings();
@@ -2446,6 +2571,11 @@
             if (action === "vrcx_login") await vrcxLogin();
             if (action === "vrcx_2fa") await vrcxVerify2fa();
             if (action === "vrcx_logout") await api("/vrcx-plus/vrchat/logout", { method: "POST" });
+            if (action === "vrchat_friends_refresh") await refreshVrchatFriends();
+            if (action === "vrchat_avatar_explorer_search") await vrchatAvatarExplorerSearch();
+            if (action === "vrchat_roster_refresh") await refreshVrchatRoster();
+            if (action === "vrchat_roster_join") await joinVrchatRosterInstance();
+            if (action === "vrchat_user_search") await vrchatUserSearch();
             if (action === "save_avatar_change") await saveAvatarChangeSettings();
             if (action === "save_mute_indicator") await saveMuteIndicatorSettings();
             if (action === "add_reaction_rule") await addReactionRule();
@@ -2487,38 +2617,6 @@
         await refreshVrcxPanel(false);
     }
 
-    async function vrcxAvatarSearch() {
-        const query = $("vrcx_avatar_query") ? $("vrcx_avatar_query").value.trim() : "";
-        const source = $("vrcx_avatar_source") ? $("vrcx_avatar_source").value : "auto";
-        if (query.length < 2) throw new Error("Avatar search needs at least 2 characters.");
-        const payload = await api("/vrcx-plus/vrchat/avatar-search", {
-            method: "POST",
-            body: { query, source, n: 24, urls: vrcxProviderUrls() }
-        });
-        renderVrcxAvatarResults(payload.results || [], payload.source || source);
-    }
-
-    function renderVrcxAvatarResults(results, source) {
-        const node = $("vrcx_avatar_results");
-        if (!node) return;
-        if (!results.length) {
-            node.innerHTML = `<div class="empty-state">No avatars returned from ${escapeHtml(source || "the selected source")}.</div>`;
-            return;
-        }
-        node.innerHTML = results.slice(0, 12).map((avatar) => {
-            const avatarId = avatar.id || avatar.avatarId || avatar.avatar_id || "";
-            const platforms = avatar.platformsText || (Array.isArray(avatar.platforms) ? avatar.platforms.join(", ") : "");
-            return `
-                <div class="item">
-                    <div class="item-title"><span>${escapeHtml(avatar.name || "Unknown avatar")}</span><span>${escapeHtml(avatar.releaseStatus || avatar.status || "")}</span></div>
-                    <div class="item-meta">${escapeHtml(avatar.authorName || avatar.author || avatar.provider || "Unknown author")}${platforms ? ` | ${escapeHtml(platforms)}` : ""}</div>
-                    <div class="item-meta">${escapeHtml(avatarId)}</div>
-                    ${String(avatarId).startsWith("avtr_") ? `<div class="item-actions"><button class="secondary" type="button" data-vrcx-avatar-select="${escapeAttr(avatarId)}">Use avatar</button></div>` : ""}
-                </div>
-            `;
-        }).join("");
-    }
-
     async function vrcxSelectAvatar(avatarId) {
         const id = String(avatarId || "").trim();
         if (!id) return;
@@ -2555,6 +2653,400 @@
         if ($("vrcx_2fa_code")) $("vrcx_2fa_code").value = "";
     }
 
+    const vrchatState = {
+        friends: [],
+        avatarResults: [],
+        avatarSearched: false,
+        userResults: [],
+        userSearched: false,
+        roster: {},
+        favorites: { avatar: [], user: [], world: [] }
+    };
+
+    function bindVrchatExplorer() {
+        $$(".vrchat-tab-btn").forEach((button) => {
+            button.addEventListener("click", () => showVrchatTab(button.dataset.vrchatTab));
+        });
+        const filter = $("vrchat_friends_filter");
+        if (filter) filter.addEventListener("input", () => renderVrchatFriends());
+        const section = $("section_vrchat");
+        if (section) {
+            section.addEventListener("click", async (event) => {
+                const button = event.target.closest("[data-integration-action]");
+                if (!button) return;
+                await runIntegrationAction(button.dataset.integrationAction);
+            });
+        }
+        const closeBtn = document.querySelector("[data-vrchat-preview-close]");
+        if (closeBtn) closeBtn.addEventListener("click", closeVrchatPreview);
+        const previewDialog = $("vrchat_preview_dialog");
+        if (previewDialog) {
+            previewDialog.addEventListener("click", (event) => {
+                if (event.target === previewDialog) closeVrchatPreview();
+            });
+        }
+        document.addEventListener("click", async (event) => {
+            const favBtn = event.target.closest("[data-vrchat-favorite]");
+            if (favBtn) {
+                event.preventDefault();
+                event.stopPropagation();
+                await toggleVrchatFavorite(favBtn);
+                return;
+            }
+            const selectBtn = event.target.closest("[data-vrchat-select-avatar]");
+            if (selectBtn) {
+                await vrcxSelectAvatar(selectBtn.dataset.vrchatSelectAvatar || "");
+                return;
+            }
+            const copyBtn = event.target.closest("[data-vrchat-copy]");
+            if (copyBtn) {
+                const value = copyBtn.dataset.vrchatCopy || "";
+                if (value && navigator.clipboard) {
+                    navigator.clipboard.writeText(value).then(() => toast("Copied to clipboard.", "success")).catch(() => {});
+                }
+                return;
+            }
+            const card = event.target.closest("[data-vrchat-card]");
+            if (card) {
+                openVrchatCardPreview(card);
+            }
+        });
+    }
+
+    function showVrchatTab(tab) {
+        const next = tab || "setup";
+        $$(".vrchat-tab-btn").forEach((button) => {
+            button.classList.toggle("active", button.dataset.vrchatTab === next);
+        });
+        $$(".vrchat-pane").forEach((pane) => {
+            pane.classList.toggle("active", pane.id === `vrchat_pane_${next}`);
+        });
+        if (next === "friends" && !vrchatState.friends.length) refreshVrchatFriends();
+        if (next === "ingame") refreshVrchatRoster();
+        if (next === "favorites") refreshVrchatFavorites();
+    }
+
+    function vrchatFavoriteActive(type, id) {
+        return (vrchatState.favorites[type] || []).some((item) => item.id === id);
+    }
+
+    function vrchatFavoriteButtonHtml(type, id, name, image, extra) {
+        if (!id) return "";
+        const active = vrchatFavoriteActive(type, id);
+        return `<button class="vrchat-favorite-btn${active ? " active" : ""}" type="button" title="${active ? "Remove favorite" : "Add favorite"}"
+            data-vrchat-favorite data-vrchat-fav-type="${escapeAttr(type)}" data-vrchat-fav-id="${escapeAttr(id)}"
+            data-vrchat-fav-name="${escapeAttr(name || "")}" data-vrchat-fav-image="${escapeAttr(image || "")}" data-vrchat-fav-extra="${escapeAttr(extra || "")}">${active ? "★" : "☆"}</button>`;
+    }
+
+    function vrchatUserCardHtml(user) {
+        const id = user.id || "";
+        const name = user.displayName || user.username || "Unknown user";
+        const image = user.currentAvatarThumbnailImageUrl || user.currentAvatarImageUrl || user.userIcon || user.profilePicOverride || "";
+        const status = String(user.status || "offline").toLowerCase();
+        const statusText = user.statusDescription || (status === "offline" ? "Offline" : status);
+        return `
+            <div class="vrchat-card" data-vrchat-card data-vrchat-card-type="user" data-vrchat-card-id="${escapeAttr(id)}" data-vrchat-card-name="${escapeAttr(name)}">
+                ${vrchatFavoriteButtonHtml("user", id, name, image, status)}
+                ${image ? `<img class="vrchat-card-thumb" src="${escapeAttr(image)}" alt="" loading="lazy">` : `<div class="vrchat-card-thumb"></div>`}
+                <div class="vrchat-card-body">
+                    <span class="vrchat-card-title">${escapeHtml(name)}</span>
+                    <span class="vrchat-card-status${status !== "offline" ? " online" : ""}">${escapeHtml(statusText)}</span>
+                    ${user.currentAvatarName ? `<span class="vrchat-card-meta">Wearing: ${escapeHtml(user.currentAvatarName)}</span>` : ""}
+                </div>
+            </div>
+        `;
+    }
+
+    function vrchatAvatarCardHtml(avatar) {
+        const id = avatar.id || avatar.avatarId || avatar.avatar_id || "";
+        const name = avatar.name || "Unknown avatar";
+        const image = avatar.thumbnailImageUrl || avatar.imageUrl || "";
+        const author = avatar.authorName || avatar.author || avatar.provider || "Unknown author";
+        return `
+            <div class="vrchat-card" data-vrchat-card data-vrchat-card-type="avatar" data-vrchat-card-id="${escapeAttr(id)}">
+                ${vrchatFavoriteButtonHtml("avatar", id, name, image, author)}
+                ${image ? `<img class="vrchat-card-thumb" src="${escapeAttr(image)}" alt="" loading="lazy">` : `<div class="vrchat-card-thumb"></div>`}
+                <div class="vrchat-card-body">
+                    <span class="vrchat-card-title">${escapeHtml(name)}</span>
+                    <span class="vrchat-card-meta">${escapeHtml(author)}</span>
+                    ${avatar.releaseStatus ? `<span class="vrchat-card-meta">${escapeHtml(avatar.releaseStatus)}</span>` : ""}
+                </div>
+            </div>
+        `;
+    }
+
+    function vrchatRosterCardHtml(player) {
+        const id = player.id || "";
+        const name = player.display_name || "Unknown player";
+        const joined = player.joined_at ? new Date(player.joined_at).toLocaleTimeString() : "";
+        return `
+            <div class="vrchat-card" data-vrchat-card data-vrchat-card-type="roster" data-vrchat-card-id="${escapeAttr(id)}" data-vrchat-card-name="${escapeAttr(name)}">
+                <div class="vrchat-card-thumb"></div>
+                <div class="vrchat-card-body">
+                    <span class="vrchat-card-title">${escapeHtml(name)}</span>
+                    ${joined ? `<span class="vrchat-card-meta">Joined ${escapeHtml(joined)}</span>` : ""}
+                </div>
+            </div>
+        `;
+    }
+
+    async function refreshVrchatFriends() {
+        const onlineNode = $("vrchat_friends_online");
+        const offlineNode = $("vrchat_friends_offline");
+        if (!onlineNode || !offlineNode) return;
+        onlineNode.innerHTML = `<div class="empty-state">Loading friends...</div>`;
+        offlineNode.innerHTML = "";
+        try {
+            const payload = await api("/vrcx-plus/vrchat/friends?n=200");
+            vrchatState.friends = payload.friends || [];
+            renderVrchatFriends();
+        } catch (error) {
+            onlineNode.innerHTML = `<div class="empty-state">${escapeHtml(error.message || "Could not load friends. Log in with VRChat under Integrations first.")}</div>`;
+            offlineNode.innerHTML = "";
+        }
+    }
+
+    function renderVrchatFriends() {
+        const onlineNode = $("vrchat_friends_online");
+        const offlineNode = $("vrchat_friends_offline");
+        if (!onlineNode || !offlineNode) return;
+        const filterValue = ($("vrchat_friends_filter") ? $("vrchat_friends_filter").value : "").trim().toLowerCase();
+        const filtered = vrchatState.friends.filter((f) => !filterValue || String(f.displayName || "").toLowerCase().includes(filterValue));
+        const online = filtered.filter((f) => String(f.status || "offline").toLowerCase() !== "offline");
+        const offline = filtered.filter((f) => String(f.status || "offline").toLowerCase() === "offline");
+        setText("vrchat_friends_online_count", online.length);
+        setText("vrchat_friends_offline_count", offline.length);
+        onlineNode.innerHTML = online.length ? online.map(vrchatUserCardHtml).join("") : `<div class="empty-state">No online friends${filterValue ? " match that filter" : " right now"}.</div>`;
+        offlineNode.innerHTML = offline.length ? offline.map(vrchatUserCardHtml).join("") : `<div class="empty-state">No offline friends${filterValue ? " match that filter" : ""}.</div>`;
+    }
+
+    async function vrchatAvatarExplorerSearch() {
+        const query = $("vrchat_avatar_explorer_query") ? $("vrchat_avatar_explorer_query").value.trim() : "";
+        const source = $("vrchat_avatar_explorer_source") ? $("vrchat_avatar_explorer_source").value : "auto";
+        if (query.length < 2) throw new Error("Avatar search needs at least 2 characters.");
+        const node = $("vrchat_avatar_explorer_results");
+        if (node) node.innerHTML = `<div class="empty-state">Searching...</div>`;
+        try {
+            const payload = await api("/vrcx-plus/vrchat/avatar-search", {
+                method: "POST",
+                body: { query, source, n: 24, urls: vrcxProviderUrls() }
+            });
+            renderVrchatAvatarResults(payload.results || []);
+        } catch (error) {
+            if (node) node.innerHTML = `<div class="empty-state">${escapeHtml(error.message || "Avatar search failed.")}</div>`;
+            throw error;
+        }
+    }
+
+    function renderVrchatAvatarResults(results) {
+        if (results !== undefined) {
+            vrchatState.avatarResults = results;
+            vrchatState.avatarSearched = true;
+        }
+        if (!vrchatState.avatarSearched) return;
+        const node = $("vrchat_avatar_explorer_results");
+        if (!node) return;
+        const list = vrchatState.avatarResults;
+        node.innerHTML = list.length ? list.map(vrchatAvatarCardHtml).join("") : `<div class="empty-state">No avatars found.</div>`;
+    }
+
+    async function refreshVrchatRoster() {
+        const node = $("vrchat_roster_list");
+        try {
+            const payload = await api("/vrcx-plus/vrchat/instance-roster");
+            vrchatState.roster = payload;
+            renderVrchatRoster();
+        } catch (error) {
+            if (node) node.innerHTML = `<div class="empty-state">${escapeHtml(error.message || "Could not load the current instance.")}</div>`;
+        }
+    }
+
+    function renderVrchatRoster() {
+        const node = $("vrchat_roster_list");
+        if (!node) return;
+        const rosterState = vrchatState.roster || {};
+        setText("vrchat_roster_world", rosterState.world_name || "No world detected");
+        setText("vrchat_roster_instance", rosterState.instance || "No instance detected");
+        const players = rosterState.players || [];
+        node.innerHTML = players.length ? players.map(vrchatRosterCardHtml).join("") : `<div class="empty-state">No players detected yet. Turn on the VRChat Live monitor under Integrations.</div>`;
+    }
+
+    async function joinVrchatRosterInstance() {
+        const worldId = (vrchatState.roster || {}).world_id || "";
+        if (!worldId) {
+            throw new Error("No current world detected yet.");
+        }
+        await api("/vrcx-plus/vrchat/join", {
+            method: "POST",
+            body: { world_id: worldId, instance_id: (vrchatState.roster || {}).instance_id || "" }
+        });
+        toast("Sent to VRChat.", "success");
+    }
+
+    async function vrchatUserSearch() {
+        const query = $("vrchat_user_search_query") ? $("vrchat_user_search_query").value.trim() : "";
+        if (query.length < 2) throw new Error("User search needs at least 2 characters.");
+        const node = $("vrchat_user_search_results");
+        if (node) node.innerHTML = `<div class="empty-state">Searching...</div>`;
+        try {
+            const payload = await api("/vrcx-plus/vrchat/user-search", { method: "POST", body: { query, n: 24 } });
+            renderVrchatUserResults(payload.results || []);
+        } catch (error) {
+            if (node) node.innerHTML = `<div class="empty-state">${escapeHtml(error.message || "User search failed.")}</div>`;
+            throw error;
+        }
+    }
+
+    function renderVrchatUserResults(results) {
+        if (results !== undefined) {
+            vrchatState.userResults = results;
+            vrchatState.userSearched = true;
+        }
+        if (!vrchatState.userSearched) return;
+        const node = $("vrchat_user_search_results");
+        if (!node) return;
+        const list = vrchatState.userResults;
+        node.innerHTML = list.length ? list.map(vrchatUserCardHtml).join("") : `<div class="empty-state">No users found.</div>`;
+    }
+
+    async function refreshVrchatFavorites() {
+        try {
+            const payload = await api("/vrcx-plus/vrchat/favorites");
+            vrchatState.favorites = payload.favorites || { avatar: [], user: [], world: [] };
+        } catch (error) {
+            // Favorites are non-critical - keep whatever we had cached.
+        }
+        renderVrchatFavorites();
+        renderVrchatFriends();
+        renderVrchatAvatarResults();
+        renderVrchatUserResults();
+    }
+
+    function renderVrchatFavorites() {
+        ["avatar", "user", "world"].forEach((type) => {
+            const node = $(`vrchat_favorites_${type}`);
+            if (!node) return;
+            const items = vrchatState.favorites[type] || [];
+            if (!items.length) {
+                node.innerHTML = `<div class="empty-state">No favorite ${type}s yet.</div>`;
+                return;
+            }
+            node.innerHTML = items.map((item) => `
+                <div class="vrchat-card" data-vrchat-card data-vrchat-card-type="${type}" data-vrchat-card-id="${escapeAttr(item.id)}" data-vrchat-card-name="${escapeAttr(item.name || "")}">
+                    ${vrchatFavoriteButtonHtml(type, item.id, item.name, item.image, item.extra)}
+                    ${item.image ? `<img class="vrchat-card-thumb" src="${escapeAttr(item.image)}" alt="" loading="lazy">` : `<div class="vrchat-card-thumb"></div>`}
+                    <div class="vrchat-card-body">
+                        <span class="vrchat-card-title">${escapeHtml(item.name || item.id)}</span>
+                        ${item.extra ? `<span class="vrchat-card-meta">${escapeHtml(item.extra)}</span>` : ""}
+                    </div>
+                </div>
+            `).join("");
+        });
+    }
+
+    async function toggleVrchatFavorite(btn) {
+        const type = btn.dataset.vrchatFavType;
+        const id = btn.dataset.vrchatFavId;
+        if (!type || !id) return;
+        const active = btn.classList.contains("active");
+        try {
+            if (active) {
+                await api("/vrcx-plus/vrchat/favorites", { method: "DELETE", body: { type, id } });
+            } else {
+                await api("/vrcx-plus/vrchat/favorites", {
+                    method: "POST",
+                    body: {
+                        type,
+                        id,
+                        name: btn.dataset.vrchatFavName || "",
+                        image: btn.dataset.vrchatFavImage || "",
+                        extra: btn.dataset.vrchatFavExtra || ""
+                    }
+                });
+            }
+            await refreshVrchatFavorites();
+        } catch (error) {
+            toast(error.message || "Could not update favorites.", "error");
+        }
+    }
+
+    function openVrchatCardPreview(cardEl) {
+        const type = cardEl.dataset.vrchatCardType;
+        const id = cardEl.dataset.vrchatCardId;
+        const name = cardEl.dataset.vrchatCardName || "";
+        if (type === "avatar") {
+            const avatar = vrchatState.avatarResults.find((a) => (a.id || a.avatarId || a.avatar_id) === id)
+                || vrchatState.favorites.avatar.find((a) => a.id === id);
+            openAvatarPreview(avatar, id);
+        } else if (type === "user" || type === "roster") {
+            openUserPreview(id, name);
+        } else if (type === "world") {
+            const fav = vrchatState.favorites.world.find((w) => w.id === id);
+            openVrchatPreview((fav && fav.name) || name || "World", `
+                ${fav && fav.image ? `<img src="${escapeAttr(fav.image)}" alt="">` : ""}
+                <div class="button-row wrap"><button class="secondary" type="button" data-vrchat-copy="${escapeAttr(id)}">Copy world ID</button></div>
+            `);
+        }
+    }
+
+    function openAvatarPreview(avatar, id) {
+        const name = (avatar && avatar.name) || "Avatar";
+        const image = avatar ? (avatar.thumbnailImageUrl || avatar.imageUrl || "") : "";
+        const author = avatar ? (avatar.authorName || avatar.author || avatar.extra || "Unknown author") : "";
+        const description = avatar && avatar.description ? `<p>${escapeHtml(avatar.description)}</p>` : "";
+        const canSelect = String(id || "").startsWith("avtr_");
+        openVrchatPreview(name, `
+            ${image ? `<img src="${escapeAttr(image)}" alt="">` : ""}
+            <p class="item-meta">${escapeHtml(author)}</p>
+            ${description}
+            <div class="button-row wrap">
+                ${canSelect ? `<button type="button" data-vrchat-select-avatar="${escapeAttr(id)}">Use this avatar</button>` : ""}
+                ${id ? `<button class="secondary" type="button" data-vrchat-copy="${escapeAttr(id)}">Copy avatar ID</button>` : ""}
+            </div>
+        `);
+    }
+
+    async function openUserPreview(id, fallbackName) {
+        openVrchatPreview(fallbackName || "User", `<p class="field-note">Loading profile...</p>`);
+        if (!id) {
+            openVrchatPreview(fallbackName || "Player", `<p class="field-note">No VRChat user ID available for this player yet.</p>`);
+            return;
+        }
+        try {
+            const payload = await api(`/vrcx-plus/vrchat/user/${encodeURIComponent(id)}`);
+            const user = payload.user || {};
+            const name = user.displayName || fallbackName || "User";
+            const image = user.currentAvatarImageUrl || user.currentAvatarThumbnailImageUrl || user.userIcon || user.profilePicOverride || "";
+            const status = String(user.status || "offline").toLowerCase();
+            const bio = user.bio ? `<p>${escapeHtml(user.bio)}</p>` : "";
+            openVrchatPreview(name, `
+                ${image ? `<img src="${escapeAttr(image)}" alt="">` : ""}
+                <p class="vrchat-card-status${status !== "offline" ? " online" : ""}">${escapeHtml(user.statusDescription || status)}</p>
+                ${user.currentAvatarName ? `<p class="item-meta">Wearing: ${escapeHtml(user.currentAvatarName)}</p>` : ""}
+                ${bio}
+                <div class="button-row wrap">
+                    ${!IS_QUEST ? `<a class="secondary" href="https://vrchat.com/home/user/${escapeAttr(id)}" target="_blank" rel="noopener">View on vrchat.com</a>` : ""}
+                    <button class="secondary" type="button" data-vrchat-copy="${escapeAttr(id)}">Copy user ID</button>
+                </div>
+            `);
+        } catch (error) {
+            openVrchatPreview(fallbackName || "User", `<p class="field-note">${escapeHtml(error.message || "Could not load this profile.")}</p>`);
+        }
+    }
+
+    function openVrchatPreview(title, bodyHtml) {
+        setText("vrchat_preview_title", title || "Preview");
+        const body = $("vrchat_preview_body");
+        if (body) body.innerHTML = bodyHtml;
+        const dialog = $("vrchat_preview_dialog");
+        if (dialog && typeof dialog.showModal === "function" && !dialog.open) dialog.showModal();
+    }
+
+    function closeVrchatPreview() {
+        const dialog = $("vrchat_preview_dialog");
+        if (dialog && typeof dialog.close === "function" && dialog.open) dialog.close();
+    }
+
     async function saveVrchatLiveSettings() {
         const logDir = $("vrchat_live_log_dir") ? $("vrchat_live_log_dir").value.trim() : "";
         const template = $("vrchat_live_template") ? $("vrchat_live_template").value.trim() : "";
@@ -2580,6 +3072,7 @@
     async function saveVrBatterySettings() {
         const includeControllers = $("vr_battery_include_controllers") ? $("vr_battery_include_controllers").checked : !IS_QUEST;
         const includeTrackers = $("vr_battery_include_trackers") ? $("vr_battery_include_trackers").checked : false;
+        const showCharging = $("vr_battery_show_charging") ? $("vr_battery_show_charging").checked : true;
         const lowThreshold = $("vr_battery_low_threshold") ? Number($("vr_battery_low_threshold").value || 20) : 20;
         const interval = $("vr_battery_interval") ? Number($("vr_battery_interval").value || 20) : 20;
         await api("/vr-battery/settings", {
@@ -2587,6 +3080,7 @@
             body: {
                 include_controllers: includeControllers,
                 include_trackers: includeTrackers,
+                show_charging: showCharging,
                 low_threshold: lowThreshold,
                 interval
             }
@@ -2695,6 +3189,170 @@
         }
     }
 
+    const customFrameState = { editingId: "", timer: 0 };
+
+    function bindCustomFrameBuilder() {
+        const modeSelect = $("custom_frame_mode");
+        if (modeSelect) modeSelect.addEventListener("change", () => { updateCustomFrameFieldVisibility(); scheduleCustomFramePreview(); });
+        [
+            "custom_frame_name", "custom_frame_top_left", "custom_frame_top_right",
+            "custom_frame_bottom_left", "custom_frame_bottom_right", "custom_frame_horizontal",
+            "custom_frame_vertical", "custom_frame_emoji"
+        ].forEach((id) => {
+            const node = $(id);
+            if (node) node.addEventListener("input", scheduleCustomFramePreview);
+        });
+        if ($("custom_frame_padding")) $("custom_frame_padding").addEventListener("change", scheduleCustomFramePreview);
+        onClick("save_custom_frame", saveCustomFrame);
+        onClick("new_custom_frame", () => { newCustomFrame(); toast("Started a new border.", "success"); });
+        updateCustomFrameFieldVisibility();
+        refreshCustomFrames();
+    }
+
+    function updateCustomFrameFieldVisibility() {
+        const mode = $("custom_frame_mode") ? $("custom_frame_mode").value : "box";
+        const corners = $("custom_frame_corners_field");
+        const edges = $("custom_frame_edges_field");
+        const vertical = $("custom_frame_vertical_field");
+        const emojiField = $("custom_frame_emoji_field");
+        const padding = $("custom_frame_padding_field");
+        if (corners) corners.style.display = mode === "emoji" ? "none" : "";
+        if (edges) edges.style.display = (mode === "box" || mode === "minimal_top" || mode === "minimal_both") ? "" : "none";
+        if (vertical) vertical.style.display = mode === "box" ? "" : "none";
+        if (emojiField) emojiField.style.display = mode === "emoji" ? "" : "none";
+        if (padding) padding.style.display = mode === "emoji" ? "none" : "";
+    }
+
+    function buildCustomFrameDraft() {
+        return {
+            name: $("custom_frame_name") ? $("custom_frame_name").value.trim() : "",
+            mode: $("custom_frame_mode") ? $("custom_frame_mode").value : "box",
+            top_left: $("custom_frame_top_left") ? $("custom_frame_top_left").value : "",
+            top_right: $("custom_frame_top_right") ? $("custom_frame_top_right").value : "",
+            bottom_left: $("custom_frame_bottom_left") ? $("custom_frame_bottom_left").value : "",
+            bottom_right: $("custom_frame_bottom_right") ? $("custom_frame_bottom_right").value : "",
+            horizontal: $("custom_frame_horizontal") ? $("custom_frame_horizontal").value : "",
+            vertical: $("custom_frame_vertical") ? $("custom_frame_vertical").value : "",
+            padding: $("custom_frame_padding") ? $("custom_frame_padding").checked : true,
+            emoji: $("custom_frame_emoji") ? $("custom_frame_emoji").value.trim() : ""
+        };
+    }
+
+    function scheduleCustomFramePreview() {
+        window.clearTimeout(customFrameState.timer);
+        customFrameState.timer = window.setTimeout(refreshCustomFramePreview, 250);
+    }
+
+    async function refreshCustomFramePreview() {
+        const preview = $("custom_frame_preview");
+        if (!preview) return;
+        const draft = buildCustomFrameDraft();
+        const fallbackEmoji = $("appearance_frame_emoji") ? ($("appearance_frame_emoji").value.trim() || "✨") : (getSettings().chatbox_frame_emoji || "✨");
+        try {
+            const payload = await api("/preview_frame", {
+                method: "POST",
+                body: { frame: "none", emoji: fallbackEmoji, draft }
+            });
+            preview.textContent = payload.preview || "Fill in the fields above to preview.";
+        } catch (error) {
+            preview.textContent = "Preview unavailable.";
+        }
+    }
+
+    async function saveCustomFrame() {
+        try {
+            const draft = buildCustomFrameDraft();
+            if (!draft.name) {
+                toast("Enter a name for your border.", "error");
+                return;
+            }
+            const body = { ...draft };
+            if (customFrameState.editingId) body.id = customFrameState.editingId;
+            const payload = await api("/custom_frames", { method: "POST", body });
+            customFrameState.editingId = payload.id;
+            state.framesLoaded = false;
+            await loadAppearanceOptions();
+            await refreshCustomFrames();
+            toast("Border saved.", "success");
+        } catch (error) {
+            toast(error.message || "Could not save border.", "error");
+        }
+    }
+
+    function newCustomFrame() {
+        customFrameState.editingId = "";
+        if ($("custom_frame_name")) $("custom_frame_name").value = "";
+        if ($("custom_frame_mode")) $("custom_frame_mode").value = "box";
+        ["custom_frame_top_left", "custom_frame_top_right", "custom_frame_bottom_left", "custom_frame_bottom_right", "custom_frame_horizontal", "custom_frame_vertical", "custom_frame_emoji"].forEach((id) => {
+            if ($(id)) $(id).value = "";
+        });
+        if ($("custom_frame_padding")) $("custom_frame_padding").checked = true;
+        updateCustomFrameFieldVisibility();
+        refreshCustomFramePreview();
+    }
+
+    function loadCustomFrameIntoForm(frameId, definition) {
+        customFrameState.editingId = frameId;
+        if ($("custom_frame_name")) $("custom_frame_name").value = definition.name || "";
+        if ($("custom_frame_mode")) $("custom_frame_mode").value = definition.mode || "box";
+        if ($("custom_frame_top_left")) $("custom_frame_top_left").value = definition.top_left || "";
+        if ($("custom_frame_top_right")) $("custom_frame_top_right").value = definition.top_right || "";
+        if ($("custom_frame_bottom_left")) $("custom_frame_bottom_left").value = definition.bottom_left || "";
+        if ($("custom_frame_bottom_right")) $("custom_frame_bottom_right").value = definition.bottom_right || "";
+        if ($("custom_frame_horizontal")) $("custom_frame_horizontal").value = definition.horizontal || "";
+        if ($("custom_frame_vertical")) $("custom_frame_vertical").value = definition.vertical || "";
+        if ($("custom_frame_padding")) $("custom_frame_padding").checked = definition.padding !== false;
+        if ($("custom_frame_emoji")) $("custom_frame_emoji").value = definition.emoji || "";
+        updateCustomFrameFieldVisibility();
+        refreshCustomFramePreview();
+    }
+
+    async function refreshCustomFrames() {
+        const list = $("custom_frames_list");
+        if (!list) return;
+        try {
+            const payload = await api("/custom_frames");
+            const frames = payload.custom_frames || {};
+            const entries = Object.entries(frames);
+            if (!entries.length) {
+                list.innerHTML = `<div class="empty-state">No custom borders yet.</div>`;
+                return;
+            }
+            list.innerHTML = entries.map(([id, definition]) => `
+                <div class="item">
+                    <div class="item-title"><span>${escapeHtml(definition.name || "Custom")}</span></div>
+                    <div class="item-actions">
+                        <button class="secondary" type="button" data-custom-frame-edit="${escapeAttr(id)}">Edit</button>
+                        <button class="danger" type="button" data-custom-frame-delete="${escapeAttr(id)}">Delete</button>
+                    </div>
+                </div>
+            `).join("");
+            list.querySelectorAll("[data-custom-frame-edit]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const id = button.dataset.customFrameEdit;
+                    if (frames[id]) loadCustomFrameIntoForm(id, frames[id]);
+                });
+            });
+            list.querySelectorAll("[data-custom-frame-delete]").forEach((button) => {
+                button.addEventListener("click", async () => {
+                    try {
+                        const id = button.dataset.customFrameDelete;
+                        await api(`/custom_frames/${encodeURIComponent(id)}`, { method: "DELETE" });
+                        if (customFrameState.editingId === id) newCustomFrame();
+                        state.framesLoaded = false;
+                        await loadAppearanceOptions();
+                        await refreshCustomFrames();
+                        toast("Border deleted.", "success");
+                    } catch (error) {
+                        toast(error.message || "Could not delete border.", "error");
+                    }
+                });
+            });
+        } catch (error) {
+            list.innerHTML = `<div class="empty-state">Could not load your custom borders.</div>`;
+        }
+    }
+
     function renderProfiles(profiles, settings) {
         const node = $("profile_list");
         if (!node) return;
@@ -2793,6 +3451,9 @@
     }
 
     function hydrateSettings(settings) {
+        if ($("weather_temp_unit") && document.activeElement !== $("weather_temp_unit")) {
+            $("weather_temp_unit").value = settings.weather_temp_unit || "F";
+        }
         setValue("setting_quest_ip", settings.quest_ip || "127.0.0.1");
         setValue("setting_quest_port", settings.quest_port || 9000);
         setValue("setting_osc_interval", settings.osc_send_interval || 3);

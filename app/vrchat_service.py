@@ -31,7 +31,10 @@ _instance_cache_ttl_seconds = 60
 _status_cache = {}
 _status_cache_at = 0.0
 _status_cache_ttl_seconds = 25
+_status_cache_ttl_override = None
 _status_stale_ttl_seconds = 10 * 60
+_status_error_cache_ttl_seconds = 60
+_status_rate_limit_cache_ttl_seconds = 5 * 60
 
 
 def _now_iso():
@@ -425,6 +428,10 @@ def _extract_user_results(payload):
     return []
 
 
+def normalize_user_result(item):
+    return _normalize_user_result(item)
+
+
 def _normalize_user_result(item):
     if not isinstance(item, dict):
         return {}
@@ -549,19 +556,21 @@ def init():
         _load_session()
 
 
-def _cache_status_payload(payload):
-    global _status_cache, _status_cache_at
+def _cache_status_payload(payload, ttl=None):
+    global _status_cache, _status_cache_at, _status_cache_ttl_override
     cached = deepcopy(payload if isinstance(payload, dict) else {})
     cached["checked_at"] = _now_iso()
     _status_cache = cached
     _status_cache_at = time.time()
+    _status_cache_ttl_override = ttl
     return deepcopy(cached)
 
 
 def _fresh_cached_status(force=False):
     if force or not _status_cache:
         return None
-    if (time.time() - _status_cache_at) >= _status_cache_ttl_seconds:
+    ttl = _status_cache_ttl_override or _status_cache_ttl_seconds
+    if (time.time() - _status_cache_at) >= ttl:
         return None
     cached = deepcopy(_status_cache)
     cached["cached"] = True
@@ -586,9 +595,10 @@ def _stale_connected_status(error):
 
 
 def _clear_status_cache():
-    global _status_cache, _status_cache_at
+    global _status_cache, _status_cache_at, _status_cache_ttl_override
     _status_cache = {}
     _status_cache_at = 0.0
+    _status_cache_ttl_override = None
 
 
 def status(force=False):
@@ -626,54 +636,58 @@ def status(force=False):
                     pending_error = _auth_required_message(401)
                     if error and _is_2fa_required_error(error):
                         pending_error = error
-                    return {
+                    return _cache_status_payload({
                         "ok": True,
                         "logged_in": False,
                         "user": None,
                         "requires_2fa": True,
                         "methods": method_list,
                         "error": pending_error
-                    }
+                    }, ttl=_status_error_cache_ttl_seconds)
                 unknown_error = error or "VRChat auth state is incomplete. Re-login may be required."
                 stale = _stale_connected_status(unknown_error)
                 if stale:
                     return stale
-                return {
+                return _cache_status_payload({
                     "ok": True,
                     "logged_in": False,
                     "user": None,
                     "requires_2fa": False,
                     "methods": [],
                     "error": unknown_error
-                }
+                }, ttl=_status_error_cache_ttl_seconds)
 
-            if not error and response.status_code == 401:
+            error_ttl = _status_error_cache_ttl_seconds
+            if response.status_code == 429:
+                error = "VRChat's API is rate-limiting this app right now. It'll retry automatically in a few minutes."
+                error_ttl = _status_rate_limit_cache_ttl_seconds
+            elif not error and response.status_code == 401:
                 error = _auth_required_message(response.status_code)
-            if not error:
+            elif not error:
                 error = f"VRChat auth check failed ({response.status_code})"
             stale = _stale_connected_status(error)
             if stale:
                 return stale
-            return {
+            return _cache_status_payload({
                 "ok": True,
                 "logged_in": False,
                 "user": None,
                 "requires_2fa": bool(_pending_2fa),
                 "methods": list(_pending_2fa_methods),
                 "error": error
-            }
+            }, ttl=error_ttl)
         except Exception as e:
             stale = _stale_connected_status(str(e))
             if stale:
                 return stale
-            return {
+            return _cache_status_payload({
                 "ok": False,
                 "error": str(e),
                 "logged_in": False,
                 "user": None,
                 "requires_2fa": bool(_pending_2fa),
                 "methods": list(_pending_2fa_methods)
-            }
+            }, ttl=_status_error_cache_ttl_seconds)
 
 
 def current_user_location(force_refresh=False):
@@ -1203,6 +1217,38 @@ def get_friends(n=100, offline=False):
             return {"ok": True, "friends": friends[:requested_total]}
         except Exception as e:
             return {"ok": False, "error": str(e), "friends": []}
+
+
+def search_users(query, n=40, offset=0):
+    query = str(query or "").strip()
+    if len(query) < 2:
+        return {"ok": False, "error": "Search needs at least 2 characters", "results": []}
+    with _lock:
+        params = {
+            "search": query,
+            "n": max(1, min(int(n), 100)),
+            "offset": max(0, int(offset))
+        }
+        try:
+            response = _request("GET", "/users", params=params)
+            payload = []
+            try:
+                payload = response.json()
+            except Exception:
+                payload = []
+            if response.status_code != 200:
+                error = _extract_error_message(payload)
+                _apply_2fa_hint_from_message(error)
+                if not error and response.status_code == 401:
+                    error = _auth_required_message(response.status_code)
+                if not error:
+                    error = f"User search failed ({response.status_code})"
+                return {"ok": False, "error": error, "results": []}
+            rows = payload if isinstance(payload, list) else _extract_user_results(payload)
+            normalized = [_normalize_user_result(item) for item in rows if isinstance(item, dict)]
+            return {"ok": True, "results": normalized}
+        except Exception as e:
+            return {"ok": False, "error": str(e), "results": []}
 
 
 def get_user_profile(user_id):

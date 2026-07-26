@@ -3,7 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLATFORM_DIR="$ROOT_DIR"
-CHATBOX_DIR="$PLATFORM_DIR/Crystal-Chatbox-Source-Code/Crystal Chatbox"
+CHATBOX_DIR="$PLATFORM_DIR"
+APP_DIR="$(cd "$PLATFORM_DIR/../.." && pwd)/app"
 CHATBOX_VENV="$PLATFORM_DIR/.venv"
 
 resolve_python() {
@@ -32,8 +33,8 @@ resolve_python() {
 
 PYTHON_BIN="$(resolve_python)"
 
-if [ ! -d "$CHATBOX_DIR" ]; then
-  echo "Chatbox folder not found: $CHATBOX_DIR"
+if [ ! -d "$APP_DIR" ]; then
+  echo "Shared app source not found: $APP_DIR"
   exit 1
 fi
 
@@ -58,5 +59,6 @@ echo ""
 echo "Starting Crystal Client for macOS on http://127.0.0.1:${PORT:-5000}"
 echo ""
 
+export PYTHONPATH="$APP_DIR"
 cd "$CHATBOX_DIR"
 exec "$CHATBOX_PYTHON" main.py "$@"

@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $RootDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$RepoRoot = Split-Path -Parent $RootDir
+$RepoRoot = Split-Path -Parent (Split-Path -Parent $RootDir)
 $AppDir = Join-Path $RepoRoot "app"
 $ChatboxVenv = Join-Path $RootDir ".venv"
 $ChatboxPython = Join-Path $ChatboxVenv "Scripts\python.exe"
@@ -25,6 +25,7 @@ Write-Host "Building $ExeName ..."
 $pyinstallerArgs = @(
     "-m", "PyInstaller",
     "--noconfirm",
+    "--onefile",
     "--windowed",
     "--name", $ExeName,
     "--distpath", (Join-Path $RootDir "Builds"),

@@ -77,6 +77,7 @@ DEFAULTS = {
     "per_message_intervals": {},
     "music_progress": True,
     "progress_style": "bar",
+    "music_time_enabled": True,
     "timezone": "local",
     "layout_order": ["time", "custom", "vrchat_live", "song", "window", "heartrate", "weather", "system_stats", "afk"],
     "layout_spacers": {},
@@ -113,10 +114,15 @@ DEFAULTS = {
     "hr_show_trend": True,
     "hr_show_stats": False,
     "time_emoji": "⏰",
+    "time_icon_enabled": True,
     "custom_emoji": "💬",
+    "custom_icon_enabled": True,
     "song_emoji": "🎶",
+    "song_icon_enabled": True,
     "window_emoji": "💻",
+    "window_icon_enabled": True,
     "heartrate_emoji": "❤️",
+    "heartrate_icon_enabled": True,
     "custom_background": "",
     "custom_button_color": "",
     "weather_enabled": False,
@@ -124,6 +130,7 @@ DEFAULTS = {
     "weather_update_interval": 600,
     "show_weather": False,
     "weather_emoji": "🌤️",
+    "weather_icon_enabled": True,
     "vrchat_live_enabled": True,
     "vrchat_live_log_dir": "",
     "show_vrchat_live": False,
@@ -134,19 +141,25 @@ DEFAULTS = {
     "steamvr_auto_launch_enabled": False,
     "show_vr_battery": False,
     "vr_battery_include_controllers": True,
+    "vr_battery_show_charging": True,
     "vr_battery_include_trackers": False,
     "vr_battery_low_threshold": 20,
+    "vr_battery_emoji": "🔋",
+    "vr_battery_icon_enabled": True,
     "volume_enabled": False,
     "volume_interval": 10,
     "show_volume": False,
     "volume_emoji": "🔊",
+    "volume_icon_enabled": True,
     "device_status_enabled": False,
     "device_status_interval": 60,
     "show_device_storage": False,
     "device_storage_emoji": "💾",
+    "device_storage_icon_enabled": True,
     "text_effect": "none",
     "slim_chatbox": False,
     "chatbox_frame": "none",
+    "custom_frames": {},
     "chatbox_frame_emoji": "✨",
     "chatbox_frame_style": "none",
     "chatbox_template_enabled": False,
@@ -173,6 +186,7 @@ DEFAULTS = {
     "system_stats_network_units": "bits",
     "system_stats_template": "{system_emoji} {cpu_emoji} CPU {cpu} | {ram_emoji} RAM {ram}",
     "system_stats_emoji": "📊",
+    "system_stats_icon_enabled": True,
     "system_stats_cpu_emoji": "🧠",
     "system_stats_ram_emoji": "💾",
     "system_stats_gpu_emoji": "🎮",
@@ -191,6 +205,7 @@ DEFAULTS = {
     "afk_message": "AFK",
     "afk_show_duration": True,
     "afk_emoji": "💤",
+    "afk_icon_enabled": True,
     "osc_router_listen_ip": "127.0.0.1",
     "osc_router_listen_port": 9010,
     "fbt_tracker_source": "camera",
@@ -239,6 +254,7 @@ DEFAULTS = {
     "vrcx_plus_avatar_provider_enabled": True,
     "vrcx_plus_avatar_provider_url": DEFAULT_AVATAR_PROVIDER_URLS[0],
     "vrcx_plus_avatar_provider_urls": list(DEFAULT_AVATAR_PROVIDER_URLS),
+    "vrcx_plus_favorites": {"avatar": [], "user": [], "world": []},
     "favorite_messages": [],
     "saved_templates": [
         {
@@ -268,6 +284,10 @@ DEFAULTS = {
     "mute_indicator_text": "🔇 Muted",
     "uptime_enabled": False,
     "uptime_emoji": "⏱️",
+    "uptime_icon_enabled": True,
+    "total_time_enabled": False,
+    "total_time_emoji": "📈",
+    "total_time_icon_enabled": True,
     "global_hotkeys_enabled": False,
     "global_hotkeys": [],
     "osc_reactions_port": 9001,
@@ -417,9 +437,11 @@ def migrate_settings(data):
         "system_stats_network_emoji",
         "system_stats_battery_emoji",
         "afk_emoji",
+        "vr_battery_emoji",
         "volume_emoji",
         "device_storage_emoji",
         "uptime_emoji",
+        "total_time_emoji",
     ):
         migrated[key] = _fix_mojibake(migrated.get(key, DEFAULTS[key]))
 
@@ -481,6 +503,8 @@ def migrate_settings(data):
         migrated["reaction_rules"] = []
     if not isinstance(migrated.get("global_hotkeys"), list):
         migrated["global_hotkeys"] = []
+    if not isinstance(migrated.get("custom_frames"), dict):
+        migrated["custom_frames"] = {}
     provider_urls = migrated.get("vrcx_plus_avatar_provider_urls", [])
     if isinstance(provider_urls, str):
         provider_urls = [provider_urls]
@@ -494,6 +518,14 @@ def migrate_settings(data):
             merged_provider_urls.append(provider_url)
     migrated["vrcx_plus_avatar_provider_urls"] = merged_provider_urls
     migrated["vrcx_plus_avatar_provider_url"] = merged_provider_urls[0]
+    favorites = migrated.get("vrcx_plus_favorites")
+    if not isinstance(favorites, dict):
+        favorites = {}
+    migrated["vrcx_plus_favorites"] = {
+        "avatar": favorites.get("avatar", []) if isinstance(favorites.get("avatar"), list) else [],
+        "user": favorites.get("user", []) if isinstance(favorites.get("user"), list) else [],
+        "world": favorites.get("world", []) if isinstance(favorites.get("world"), list) else [],
+    }
     return migrated
 
 

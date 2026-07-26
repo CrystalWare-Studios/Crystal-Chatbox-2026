@@ -49,6 +49,47 @@ def resolve_us_zip(zip_code):
     return {"city": city, "state": state_abbr, "timezone": timezone}
 
 
+UK_POSTCODE_URL = "https://api.zippopotam.us/gb/{outward_code}"
+UK_OUTWARD_RE = re.compile(r"^[A-Z]{1,2}[0-9][A-Z0-9]?$")
+
+
+def _uk_outward_code(raw_postcode):
+    # UK inward codes are always exactly 3 characters (digit + 2 letters), so
+    # stripping the last 3 characters of a full postcode reliably leaves the
+    # outward code, which is all zippopotam's GB lookup accepts.
+    code = re.sub(r"\s+", "", str(raw_postcode or "")).upper()
+    if len(code) >= 5:
+        return code[:-3]
+    return code
+
+
+def resolve_uk_postcode(postcode):
+    outward_code = _uk_outward_code(postcode)
+    if not UK_OUTWARD_RE.match(outward_code):
+        raise ValueError("Enter a valid UK postcode (e.g. SW1A 1AA or AB10 5XL).")
+    response = requests.get(UK_POSTCODE_URL.format(outward_code=outward_code), timeout=15)
+    if response.status_code == 404:
+        raise ValueError("That postcode wasn't found.")
+    response.raise_for_status()
+    data = response.json()
+    places = data.get("places") or []
+    if not places:
+        raise ValueError("That postcode wasn't found.")
+    place = places[0]
+    city = place.get("place_name") or place.get("state", "")
+    return {"city": city, "state": place.get("state_abbreviation", ""), "timezone": "Europe/London"}
+
+
+def resolve_location_code(code):
+    code = str(code or "").strip()
+    if re.match(r"^\d{5}$", code):
+        return resolve_us_zip(code)
+    outward_code = _uk_outward_code(code)
+    if UK_OUTWARD_RE.match(outward_code):
+        return resolve_uk_postcode(code)
+    raise ValueError("Enter a 5-digit US zip code or a UK postcode (e.g. SW1A 1AA).")
+
+
 weather_state = {
     "temp_c": None,
     "temp_f": None,

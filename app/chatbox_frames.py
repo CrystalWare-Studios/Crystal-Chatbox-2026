@@ -193,9 +193,55 @@ FRAME_STYLES = {
 
 DEFAULT_FRAME_EMOJI = "✨"
 
+CUSTOM_FRAME_MODES = {"box", "bracket", "minimal_top", "minimal_both", "emoji"}
 
-def get_frame_styles():
-    return [{"id": k, "name": v["name"], "description": v["description"]} for k, v in FRAME_STYLES.items()]
+
+def custom_style_from_definition(definition):
+    definition = definition if isinstance(definition, dict) else {}
+    mode = definition.get("mode", "box")
+    if mode not in CUSTOM_FRAME_MODES:
+        mode = "box"
+    style = {
+        "name": str(definition.get("name") or "Custom")[:40],
+        "description": "Custom border",
+        "top_left": str(definition.get("top_left", ""))[:6],
+        "top_right": str(definition.get("top_right", ""))[:6],
+        "bottom_left": str(definition.get("bottom_left", ""))[:6],
+        "bottom_right": str(definition.get("bottom_right", ""))[:6],
+        "horizontal": str(definition.get("horizontal", ""))[:6],
+        "vertical": str(definition.get("vertical", ""))[:6],
+        "padding": bool(definition.get("padding", True)),
+    }
+    if mode == "bracket":
+        style["bracket_mode"] = True
+    elif mode == "minimal_top":
+        style["top_only"] = True
+    elif mode == "minimal_both":
+        style["top_only"] = False
+    elif mode == "emoji":
+        style["emoji_mode"] = True
+        custom_emoji = str(definition.get("emoji", "")).strip()
+        if custom_emoji:
+            style["emoji_override"] = custom_emoji
+    return style
+
+
+def get_style(style_id, custom_frames=None):
+    if custom_frames and style_id in custom_frames:
+        return custom_style_from_definition(custom_frames[style_id])
+    return FRAME_STYLES.get(style_id, FRAME_STYLES["none"])
+
+
+def get_frame_styles(custom_frames=None):
+    styles = [{"id": k, "name": v["name"], "description": v["description"]} for k, v in FRAME_STYLES.items()]
+    for custom_id, definition in (custom_frames or {}).items():
+        styles.append({
+            "id": custom_id,
+            "name": str((definition or {}).get("name") or "Custom"),
+            "description": "Your custom border",
+            "custom": True,
+        })
+    return styles
 
 
 def get_longest_line_length(text):
@@ -233,11 +279,11 @@ def _fit_to_budget(build_fn, lines, max_width, max_total_length):
     return safe_cut(result, max_total_length) if len(result) > max_total_length else result
 
 
-def apply_frame(text, style_id, max_total_length=DEFAULT_MAX_TOTAL_LENGTH, width=None, emoji=DEFAULT_FRAME_EMOJI, line_fit=None):
+def apply_frame(text, style_id, max_total_length=DEFAULT_MAX_TOTAL_LENGTH, width=None, emoji=DEFAULT_FRAME_EMOJI, line_fit=None, custom_frames=None):
     if not text or not text.strip():
         return text
 
-    style = FRAME_STYLES.get(style_id, FRAME_STYLES["none"])
+    style = get_style(style_id, custom_frames)
 
     if style_id == "none":
         return safe_cut(text, max_total_length)
@@ -247,7 +293,7 @@ def apply_frame(text, style_id, max_total_length=DEFAULT_MAX_TOTAL_LENGTH, width
     preferred_width = min(preferred_width, 40)
 
     if style.get("emoji_mode"):
-        return apply_emoji_frame(lines, emoji, preferred_width, max_total_length, line_fit=line_fit)
+        return apply_emoji_frame(lines, style.get("emoji_override") or emoji, preferred_width, max_total_length, line_fit=line_fit)
 
     if style.get("bracket_mode"):
         return apply_bracket_frame(lines, style, preferred_width, max_total_length, line_fit=line_fit)
@@ -318,16 +364,17 @@ def apply_bracket_frame(lines, style, width=40, max_total_length=DEFAULT_MAX_TOT
     return _fit_to_budget(build, lines, width, max_total_length)
 
 
-def get_frame_preview(style_id, max_total_length=DEFAULT_MAX_TOTAL_LENGTH, emoji=DEFAULT_FRAME_EMOJI):
+def get_frame_preview(style_id, max_total_length=DEFAULT_MAX_TOTAL_LENGTH, emoji=DEFAULT_FRAME_EMOJI, custom_frames=None):
     sample_text = "Hello World\n12:00 PM"
-    return apply_frame(sample_text, style_id, max_total_length=max_total_length, emoji=emoji)
+    return apply_frame(sample_text, style_id, max_total_length=max_total_length, emoji=emoji, custom_frames=custom_frames)
 
 
 def _frame_total_length(style, width, lines, emoji=DEFAULT_FRAME_EMOJI):
     if lines <= 0:
         return 0
     if style.get("emoji_mode"):
-        per_line = 2 * len(emoji or DEFAULT_FRAME_EMOJI) + 2 + width
+        effective_emoji = style.get("emoji_override") or emoji
+        per_line = 2 * len(effective_emoji or DEFAULT_FRAME_EMOJI) + 2 + width
         return lines * per_line + (lines - 1)
     if style.get("bracket_mode"):
         tl, tr = style["top_left"], style["top_right"]
@@ -354,9 +401,10 @@ def _frame_total_length(style, width, lines, emoji=DEFAULT_FRAME_EMOJI):
     return top_len + bottom_len + lines * content_len + (total_parts - 1)
 
 
-def plan_frame_capacity(style_id, max_total_length=DEFAULT_MAX_TOTAL_LENGTH, min_width=14, max_width=40, emoji=DEFAULT_FRAME_EMOJI):
-    style = FRAME_STYLES.get(style_id, FRAME_STYLES["none"])
-    if style_id == "none" or not style or style_id not in FRAME_STYLES:
+def plan_frame_capacity(style_id, max_total_length=DEFAULT_MAX_TOTAL_LENGTH, min_width=14, max_width=40, emoji=DEFAULT_FRAME_EMOJI, custom_frames=None):
+    is_known = style_id in FRAME_STYLES or (custom_frames and style_id in custom_frames)
+    style = get_style(style_id, custom_frames)
+    if style_id == "none" or not style or not is_known:
         return max_width, 6
 
     best_width, best_lines, best_capacity = min_width, 1, 0

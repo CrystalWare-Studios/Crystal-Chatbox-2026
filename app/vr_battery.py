@@ -320,27 +320,30 @@ def _format_device(device):
     return f"{device['label']} {device['battery_percent']}%{charge}"
 
 
-def get_battery_text(include_controllers=True, include_trackers=False, low_battery_threshold=0):
+def get_battery_text(include_controllers=True, include_trackers=False, low_battery_threshold=0, show_charging=True):
     state = get_state()
     if not state.get("enabled") or state.get("status") not in {"active"}:
         return ""
 
+    def charge_suffix(device):
+        return " ⚡" if show_charging and device.get("charging") else ""
+
     parts = []
     hmd = state.get("hmd")
     if hmd and hmd.get("has_battery"):
-        parts.append(f"Headset {hmd['battery_percent']}%")
+        parts.append(f"Headset {hmd['battery_percent']}%{charge_suffix(hmd)}")
 
     if include_controllers:
         for controller in state.get("controllers", []):
             if not controller.get("has_battery"):
                 continue
             short_label = controller["label"].replace(" Controller", "")
-            parts.append(f"{short_label} {controller['battery_percent']}%")
+            parts.append(f"{short_label} {controller['battery_percent']}%{charge_suffix(controller)}")
 
     if include_trackers:
         for tracker in state.get("trackers", []):
             if tracker.get("has_battery"):
-                parts.append(f"{tracker['label']} {tracker['battery_percent']}%")
+                parts.append(f"{tracker['label']} {tracker['battery_percent']}%{charge_suffix(tracker)}")
 
     if not parts:
         return ""

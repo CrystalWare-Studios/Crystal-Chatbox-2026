@@ -39,6 +39,7 @@
             <button class="nav-item" data-section="logs" type="button">Logs</button>
             <button class="nav-item" data-section="settings" type="button">Settings</button>
             <button class="nav-item" data-section="leaderboard" type="button">Leaderboard</button>
+            <button class="nav-item" data-section="vrchat" type="button">VRChat</button>
             <button class="nav-item" data-section="help" type="button">Help</button>
         </nav>
         <div class="sidebar-footer">
@@ -146,6 +147,7 @@
                             <h3>Message Parts</h3>
                             <p>These are the pieces Crystal uses to build the automatic chatbox message.</p>
                         </div>
+                        <span id="chatbox_char_budget" class="status-pill neutral">- / 144</span>
                     </div>
                     <div id="module_toggles" class="module-list"></div>
                     <label class="field">
@@ -511,6 +513,7 @@
                     </div>
                     {% endif %}
                     <label class="switch-row"><input id="spotify_show_music" type="checkbox"> <span>Show music in chatbox</span></label>
+                    <label class="switch-row"><input id="spotify_music_time" type="checkbox"> <span>Show elapsed/total time (e.g. [1:23 / 3:45])</span></label>
                     <label class="switch-row"><input id="spotify_music_progress" type="checkbox"> <span>Show music progress bar</span></label>
                     <label class="field"><span>Progress style</span><select id="spotify_progress_style"><option value="bar">Bar</option><option value="dots">Dots</option><option value="percentage">Percentage</option></select></label>
                     <div class="button-row wrap">
@@ -533,13 +536,17 @@
                     <div id="heart_rate_setup_status" class="field-note"></div>
                 </details>
                 <details class="panel collapsible" id="location_zip_panel">
-                    <summary><h3>Weather &amp; Time Zone (Zip Code)</h3></summary>
-                    <p class="field-note">Enter a US zip code to set your weather location and clock time zone together in one step. Leave weather on "auto" instead if you'd rather it detect your location automatically.</p>
-                    <label class="field"><span>Zip code</span><input id="location_zip_input" type="text" inputmode="numeric" maxlength="5" placeholder="e.g. 90210"></label>
+                    <summary><h3>Weather &amp; Time Zone (Zip/Postcode)</h3></summary>
+                    <p class="field-note">Enter a US zip code or a UK postcode to set your weather location and clock time zone together in one step. Leave weather on "auto" instead if you'd rather it detect your location automatically.</p>
+                    <label class="field"><span>Zip code or UK postcode</span><input id="location_zip_input" type="text" maxlength="8" placeholder="e.g. 90210 or SW1A 1AA"></label>
                     <div class="button-row wrap">
-                        <button id="location_zip_save" class="secondary" type="button">Use this zip code</button>
+                        <button id="location_zip_save" class="secondary" type="button">Use this location</button>
                     </div>
                     <div id="location_zip_status" class="field-note"></div>
+                    <label class="field"><span>Temperature unit</span><select id="weather_temp_unit"><option value="F">Fahrenheit (°F)</option><option value="C">Celsius (°C)</option></select></label>
+                    <div class="button-row wrap">
+                        <button id="weather_temp_unit_save" class="secondary" type="button">Save temperature unit</button>
+                    </div>
                 </details>
                 {% if not is_android %}
                 <details class="panel collapsible">
@@ -547,68 +554,6 @@
                     <p class="field-note">Camera and estimation-based full-body tracking is in the works and will land in a future update.</p>
                 </details>
                 {% endif %}
-                <details class="panel collapsible">
-                    <summary><h3>VRChat Account</h3></summary>
-                    <dl class="status-list">
-                        <div><dt>Account</dt><dd id="vrcx_account_status">Unknown</dd></div>
-                    </dl>
-                    <div class="form-grid compact-fields">
-                        <label class="field"><span>Username</span><input id="vrcx_username" type="text" autocomplete="username"></label>
-                        <label class="field"><span>Password</span><input id="vrcx_password" type="password" autocomplete="current-password"></label>
-                    </div>
-                    <div class="button-row wrap">
-                        <button class="secondary" type="button" data-integration-action="vrcx_login">Log in</button>
-                        <button class="secondary" type="button" data-integration-action="vrcx_logout">Log out</button>
-                    </div>
-                    <div class="form-grid compact-fields">
-                        <label class="field"><span>2FA code</span><input id="vrcx_2fa_code" type="text" inputmode="numeric" autocomplete="one-time-code"></label>
-                        <label class="field"><span>Method</span><select id="vrcx_2fa_method"><option value="totp">Authenticator</option><option value="otp">Email</option></select></label>
-                    </div>
-                    <div class="button-row wrap">
-                        <button class="secondary" type="button" data-integration-action="vrcx_2fa">Verify 2FA</button>
-                    </div>
-                </details>
-                <details class="panel collapsible">
-                    <summary><h3>VRChat Live Instance</h3></summary>
-                    <dl class="status-list">
-                        <div><dt>Status</dt><dd id="vrchat_live_status">Unknown</dd></div>
-                        <div><dt>Source</dt><dd id="vrchat_live_source">Unknown</dd></div>
-                        <div><dt>World</dt><dd id="vrchat_live_world">No world detected</dd></div>
-                        <div><dt>Instance</dt><dd id="vrchat_live_instance">No instance detected</dd></div>
-                        <div><dt>Players</dt><dd id="vrchat_live_players">0</dd></div>
-                        <div><dt>Last event</dt><dd id="vrchat_live_last_event">None yet</dd></div>
-                        {% if not is_android %}
-                        <div><dt>Log</dt><dd id="vrchat_live_log">Waiting for VRChat output log</dd></div>
-                        <div><dt>Lines scanned</dt><dd id="vrchat_live_lines_scanned">0</dd></div>
-                        <div><dt>Last log line seen</dt><dd id="vrchat_live_last_line">None yet</dd></div>
-                        <div><dt>VRChat.exe running</dt><dd id="vrchat_live_process_running">Unknown</dd></div>
-                        {% endif %}
-                    </dl>
-                    <div class="button-row wrap">
-                        {% if not is_android %}<button class="secondary" type="button" data-integration-action="toggle_vrchat_live">Start/stop monitor</button>{% endif %}
-                        <button class="secondary" type="button" data-integration-action="refresh_vrchat_live">Refresh live data</button>
-                    </div>
-                    {% if not is_android %}
-                    <label class="field live-log-field">
-                        <span>VRChat log folder</span>
-                        <input id="vrchat_live_log_dir" type="text" placeholder="Auto-detects AppData\\LocalLow\\VRChat\\VRChat">
-                    </label>
-                    {% endif %}
-                    <label class="field">
-                        <span>Manual world or instance link</span>
-                        <input id="vrchat_live_manual_location" type="text" placeholder="Paste a VRChat world link, or wrld_xxx:instance">
-                    </label>
-                    <label class="field">
-                        <span>Chatbox text for live instance</span>
-                        <input id="vrchat_live_template" type="text" placeholder="{world} ({player_count}/{capacity}) | {instance} | {last_event}">
-                    </label>
-                    <div class="button-row wrap">
-                        <button class="secondary" type="button" data-integration-action="save_vrchat_live_settings">Save live settings</button>
-                        <button class="secondary" type="button" data-integration-action="apply_vrchat_live_manual">Use manual link</button>
-                        <button class="secondary" type="button" data-integration-action="clear_vrchat_live_manual">Clear manual link</button>
-                    </div>
-                    <div id="vrchat_live_events" class="mini-log"></div>
-                </details>
                 <details class="panel collapsible">
                     <summary><h3>{% if is_android %}Quest Headset Battery{% else %}VR Headset and Controller Battery{% endif %}</h3></summary>
                     <p>{% if is_android %}Reads the battery level directly from this Quest headset.{% else %}Reads headset, controller, and tracker battery levels from SteamVR.{% endif %}</p>
@@ -625,6 +570,7 @@
                         {% if not is_android %}
                         <label class="switch-row"><input id="vr_battery_include_controllers" type="checkbox"> <span>Include controllers</span></label>
                         <label class="switch-row"><input id="vr_battery_include_trackers" type="checkbox"> <span>Include trackers</span></label>
+                        <label class="switch-row"><input id="vr_battery_show_charging" type="checkbox"> <span>Show charging status next to battery %</span></label>
                         {% endif %}
                         <label class="field"><span>Low battery warning at %</span><input id="vr_battery_low_threshold" type="number" min="0" max="100"></label>
                         <label class="field"><span>Poll every seconds</span><input id="vr_battery_interval" type="number" min="5" max="120"></label>
@@ -712,22 +658,6 @@
                     </div>
                     <div id="reaction_rules_list" class="item-list compact-list">No reactions yet.</div>
                 </details>
-                <details class="panel collapsible">
-                    <summary><h3>Avatar Search</h3></summary>
-                    <label class="switch-row"><input id="vrcx_provider_enabled" type="checkbox"> <span>Use external avatar provider URLs</span></label>
-                    <label class="field"><span>Provider URLs</span><textarea id="vrcx_provider_urls" rows="3" placeholder="One provider search URL per line"></textarea></label>
-                    <div class="button-row wrap">
-                        <button class="secondary" type="button" data-integration-action="vrcx_avatar_provider_save">Save provider</button>
-                    </div>
-                    <div class="form-grid compact-fields">
-                        <label class="field"><span>Avatar search</span><input id="vrcx_avatar_query" type="search" placeholder="Avatar name"></label>
-                        <label class="field"><span>Source</span><select id="vrcx_avatar_source"><option value="auto">Auto</option><option value="vrchat">VRChat</option><option value="provider">Provider</option></select></label>
-                    </div>
-                    <div class="button-row wrap">
-                        <button class="secondary" type="button" data-integration-action="vrcx_avatar_search">Search avatars</button>
-                    </div>
-                    <div id="vrcx_avatar_results" class="item-list compact-list"></div>
-                </details>
             </div>
         </section>
 
@@ -774,6 +704,60 @@
                         </select>
                     </label>
                     <div class="button-row"><button id="save_appearance" type="button">Save appearance</button></div>
+                </article>
+                <article class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <h3>Create Your Own Border</h3>
+                            <p>Design a custom frame with your own corners, edges, or emoji. It shows up in the Frame list above once saved.</p>
+                        </div>
+                    </div>
+                    <label class="field"><span>Name</span><input id="custom_frame_name" type="text" maxlength="40" placeholder="My border"></label>
+                    <label class="field">
+                        <span>Border type</span>
+                        <select id="custom_frame_mode">
+                            <option value="box">Full box (all four sides)</option>
+                            <option value="bracket">Brackets (each line wrapped, no top/bottom)</option>
+                            <option value="minimal_top">Line above only</option>
+                            <option value="minimal_both">Line above and below</option>
+                            <option value="emoji">Emoji on each end of every line</option>
+                        </select>
+                    </label>
+                    <div id="custom_frame_corners_field" class="form-grid compact-fields">
+                        <label class="field"><span>Top-left</span><input id="custom_frame_top_left" type="text" maxlength="6" placeholder="+"></label>
+                        <label class="field"><span>Top-right</span><input id="custom_frame_top_right" type="text" maxlength="6" placeholder="+"></label>
+                        <label class="field"><span>Bottom-left</span><input id="custom_frame_bottom_left" type="text" maxlength="6" placeholder="+"></label>
+                        <label class="field"><span>Bottom-right</span><input id="custom_frame_bottom_right" type="text" maxlength="6" placeholder="+"></label>
+                    </div>
+                    <div id="custom_frame_edges_field" class="form-grid compact-fields">
+                        <label class="field"><span>Horizontal edge</span><input id="custom_frame_horizontal" type="text" maxlength="6" placeholder="-"></label>
+                        <label class="field" id="custom_frame_vertical_field"><span>Vertical edge</span><input id="custom_frame_vertical" type="text" maxlength="6" placeholder="|"></label>
+                    </div>
+                    <label class="field" id="custom_frame_emoji_field" style="display:none;">
+                        <span>Emoji</span>
+                        <input id="custom_frame_emoji" type="text" maxlength="8" placeholder="✨">
+                    </label>
+                    <label class="switch-row" id="custom_frame_padding_field"><input id="custom_frame_padding" type="checkbox" checked> <span>Add a space between the border and your text</span></label>
+                    <div class="field">
+                        <span>Preview</span>
+                        <pre id="custom_frame_preview" class="frame-preview">Fill in the fields above to preview.</pre>
+                    </div>
+                    <div class="button-row wrap">
+                        <button id="save_custom_frame" type="button">Save border</button>
+                        <button id="new_custom_frame" class="secondary" type="button">New border</button>
+                    </div>
+                    <div id="custom_frames_list" class="item-list compact-list"></div>
+                </article>
+                <article class="panel span-2">
+                    <div class="panel-head">
+                        <div>
+                            <h3>Message Icons</h3>
+                            <p>Change or turn off the icon for any individual message part.</p>
+                        </div>
+                    </div>
+                    <label class="switch-row"><input id="show_module_icons" type="checkbox" checked> <span>Show icons (master switch - turns every icon below off at once when unchecked)</span></label>
+                    <div id="icon_settings_grid" class="icon-settings-grid"></div>
+                    <div class="button-row"><button id="save_icon_settings" type="button">Save icons</button></div>
                 </article>
             </div>
         </section>
@@ -862,6 +846,197 @@
             </div>
         </section>
 
+        <section id="section_vrchat" class="section">
+            <div class="notice-panel">
+                <strong>VRChat Explorer</strong> uses your VRChat account login from the Setup tab below. Log in there first if these panes are empty.
+            </div>
+            <div class="vrchat-subnav" role="tablist">
+                <button class="vrchat-tab-btn active" data-vrchat-tab="setup" type="button">Setup</button>
+                <button class="vrchat-tab-btn" data-vrchat-tab="friends" type="button">Friends</button>
+                <button class="vrchat-tab-btn" data-vrchat-tab="avatars" type="button">Avatars</button>
+                {% if not is_android %}<button class="vrchat-tab-btn" data-vrchat-tab="ingame" type="button">InGame</button>{% endif %}
+                <button class="vrchat-tab-btn" data-vrchat-tab="search" type="button">User Search</button>
+                <button class="vrchat-tab-btn" data-vrchat-tab="favorites" type="button">Favorites</button>
+            </div>
+
+            <div id="vrchat_pane_setup" class="vrchat-pane active">
+                <div class="dashboard-grid two">
+                    <article class="panel">
+                        <h3>VRChat Account</h3>
+                        <dl class="status-list">
+                            <div><dt>Account</dt><dd id="vrcx_account_status">Unknown</dd></div>
+                        </dl>
+                        <div class="form-grid compact-fields">
+                            <label class="field"><span>Username</span><input id="vrcx_username" type="text" autocomplete="username"></label>
+                            <label class="field"><span>Password</span><input id="vrcx_password" type="password" autocomplete="current-password"></label>
+                        </div>
+                        <div class="button-row wrap">
+                            <button class="secondary" type="button" data-integration-action="vrcx_login">Log in</button>
+                            <button class="secondary" type="button" data-integration-action="vrcx_logout">Log out</button>
+                        </div>
+                        <div class="form-grid compact-fields">
+                            <label class="field"><span>2FA code</span><input id="vrcx_2fa_code" type="text" inputmode="numeric" autocomplete="one-time-code"></label>
+                            <label class="field"><span>Method</span><select id="vrcx_2fa_method"><option value="totp">Authenticator</option><option value="otp">Email</option></select></label>
+                        </div>
+                        <div class="button-row wrap">
+                            <button class="secondary" type="button" data-integration-action="vrcx_2fa">Verify 2FA</button>
+                        </div>
+                    </article>
+                    <article class="panel">
+                        <h3>Avatar Search Providers</h3>
+                        <p>Community avatar-search providers used by the Avatars tab, since VRChat's own API only searches your own avatars.</p>
+                        <label class="switch-row"><input id="vrcx_provider_enabled" type="checkbox"> <span>Use external avatar provider URLs</span></label>
+                        <label class="field"><span>Provider URLs</span><textarea id="vrcx_provider_urls" rows="3" placeholder="One provider search URL per line"></textarea></label>
+                        <div class="button-row wrap">
+                            <button class="secondary" type="button" data-integration-action="vrcx_avatar_provider_save">Save provider</button>
+                        </div>
+                    </article>
+                    <article class="panel span-2">
+                        <h3>VRChat Live Instance</h3>
+                        <dl class="status-list">
+                            <div><dt>Status</dt><dd id="vrchat_live_status">Unknown</dd></div>
+                            <div><dt>Source</dt><dd id="vrchat_live_source">Unknown</dd></div>
+                            <div><dt>World</dt><dd id="vrchat_live_world">No world detected</dd></div>
+                            <div><dt>Instance</dt><dd id="vrchat_live_instance">No instance detected</dd></div>
+                            <div><dt>Players</dt><dd id="vrchat_live_players">0</dd></div>
+                            <div><dt>Last event</dt><dd id="vrchat_live_last_event">None yet</dd></div>
+                            {% if not is_android %}
+                            <div><dt>Log</dt><dd id="vrchat_live_log">Waiting for VRChat output log</dd></div>
+                            <div><dt>Lines scanned</dt><dd id="vrchat_live_lines_scanned">0</dd></div>
+                            <div><dt>Last log line seen</dt><dd id="vrchat_live_last_line">None yet</dd></div>
+                            <div><dt>VRChat.exe running</dt><dd id="vrchat_live_process_running">Unknown</dd></div>
+                            {% endif %}
+                        </dl>
+                        <div class="button-row wrap">
+                            {% if not is_android %}<button class="secondary" type="button" data-integration-action="toggle_vrchat_live">Start/stop monitor</button>{% endif %}
+                            <button class="secondary" type="button" data-integration-action="refresh_vrchat_live">Refresh live data</button>
+                        </div>
+                        {% if not is_android %}
+                        <label class="field live-log-field">
+                            <span>VRChat log folder</span>
+                            <input id="vrchat_live_log_dir" type="text" placeholder="Auto-detects AppData\\LocalLow\\VRChat\\VRChat">
+                        </label>
+                        {% endif %}
+                        <label class="field">
+                            <span>Manual world or instance link</span>
+                            <input id="vrchat_live_manual_location" type="text" placeholder="Paste a VRChat world link, or wrld_xxx:instance">
+                        </label>
+                        <label class="field">
+                            <span>Chatbox text for live instance</span>
+                            <input id="vrchat_live_template" type="text" placeholder="{world} ({player_count}/{capacity}) | {instance} | {last_event}">
+                        </label>
+                        <div class="button-row wrap">
+                            <button class="secondary" type="button" data-integration-action="save_vrchat_live_settings">Save live settings</button>
+                            <button class="secondary" type="button" data-integration-action="apply_vrchat_live_manual">Use manual link</button>
+                            <button class="secondary" type="button" data-integration-action="clear_vrchat_live_manual">Clear manual link</button>
+                        </div>
+                        <div id="vrchat_live_events" class="mini-log"></div>
+                    </article>
+                </div>
+            </div>
+
+            <div id="vrchat_pane_friends" class="vrchat-pane">
+                <article class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <h3>Friends</h3>
+                            <p>Your VRChat friends list, grouped by online status.</p>
+                        </div>
+                        <div class="item-actions">
+                            <button class="secondary" type="button" data-integration-action="vrchat_friends_refresh">Refresh</button>
+                        </div>
+                    </div>
+                    <label class="field"><span>Filter by name</span><input id="vrchat_friends_filter" type="search" placeholder="Filter friends by name..."></label>
+                    <h4>Online (<span id="vrchat_friends_online_count">0</span>)</h4>
+                    <div id="vrchat_friends_online" class="card-grid"><div class="empty-state">Log in with VRChat under Integrations to see your friends.</div></div>
+                    <h4>Offline (<span id="vrchat_friends_offline_count">0</span>)</h4>
+                    <div id="vrchat_friends_offline" class="card-grid"></div>
+                </article>
+            </div>
+
+            <div id="vrchat_pane_avatars" class="vrchat-pane">
+                <article class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <h3>Avatar Explorer</h3>
+                            <p>Search your own VRChat avatars, or community avatar-search providers configured under the Setup tab.</p>
+                        </div>
+                    </div>
+                    <div class="form-grid compact-fields">
+                        <label class="field"><span>Search</span><input id="vrchat_avatar_explorer_query" type="search" placeholder="Avatar name"></label>
+                        <label class="field"><span>Source</span>
+                            <select id="vrchat_avatar_explorer_source">
+                                <option value="auto">Auto</option>
+                                <option value="vrchat">VRChat (your avatars)</option>
+                                <option value="provider">Community providers</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="button-row wrap">
+                        <button class="secondary" type="button" data-integration-action="vrchat_avatar_explorer_search">Search avatars</button>
+                    </div>
+                    <div id="vrchat_avatar_explorer_results" class="card-grid"><div class="empty-state">Search for an avatar to get started.</div></div>
+                </article>
+            </div>
+
+            {% if not is_android %}
+            <div id="vrchat_pane_ingame" class="vrchat-pane">
+                <article class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <h3>InGame</h3>
+                            <p>Players currently in your VRChat instance, read from the local VRChat log. Turn on the VRChat Live monitor under Integrations first.</p>
+                        </div>
+                        <div class="item-actions">
+                            <button class="secondary" type="button" data-integration-action="vrchat_roster_refresh">Refresh</button>
+                            <button class="secondary" type="button" data-integration-action="vrchat_roster_join">Join this instance</button>
+                        </div>
+                    </div>
+                    <dl class="status-list">
+                        <div><dt>World</dt><dd id="vrchat_roster_world">No world detected</dd></div>
+                        <div><dt>Instance</dt><dd id="vrchat_roster_instance">No instance detected</dd></div>
+                    </dl>
+                    <div id="vrchat_roster_list" class="card-grid"><div class="empty-state">No players detected yet.</div></div>
+                </article>
+            </div>
+            {% endif %}
+
+            <div id="vrchat_pane_search" class="vrchat-pane">
+                <article class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <h3>User Search</h3>
+                            <p>Find any VRChat user by username or display name.</p>
+                        </div>
+                    </div>
+                    <div class="form-grid compact-fields">
+                        <label class="field"><span>Search</span><input id="vrchat_user_search_query" type="search" placeholder="Username or display name"></label>
+                    </div>
+                    <div class="button-row wrap">
+                        <button class="secondary" type="button" data-integration-action="vrchat_user_search">Search users</button>
+                    </div>
+                    <div id="vrchat_user_search_results" class="card-grid"><div class="empty-state">Search for a user to get started.</div></div>
+                </article>
+            </div>
+
+            <div id="vrchat_pane_favorites" class="vrchat-pane">
+                <article class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <h3>Favorites</h3>
+                            <p>Avatars, users, and worlds you've starred from the panes above.</p>
+                        </div>
+                    </div>
+                    <h4>Avatars</h4>
+                    <div id="vrchat_favorites_avatar" class="card-grid"><div class="empty-state">No favorite avatars yet.</div></div>
+                    <h4>Users</h4>
+                    <div id="vrchat_favorites_user" class="card-grid"><div class="empty-state">No favorite users yet.</div></div>
+                    <h4>Worlds</h4>
+                    <div id="vrchat_favorites_world" class="card-grid"><div class="empty-state">No favorite worlds yet.</div></div>
+                </article>
+            </div>
+        </section>
+
         <section id="section_help" class="section">
             <div class="dashboard-grid two">
                 <article class="panel">
@@ -903,6 +1078,16 @@
         </section>
     </main>
 </div>
+
+<dialog id="vrchat_preview_dialog" class="setup-dialog vrchat-preview-dialog">
+    <div class="wizard">
+        <div class="wizard-head">
+            <h3 id="vrchat_preview_title">Preview</h3>
+            <button class="icon-button" data-vrchat-preview-close type="button" aria-label="Close preview">x</button>
+        </div>
+        <div id="vrchat_preview_body" class="vrchat-preview-body"></div>
+    </div>
+</dialog>
 
 <dialog id="setup_dialog" class="setup-dialog">
     <form method="dialog" class="wizard">
