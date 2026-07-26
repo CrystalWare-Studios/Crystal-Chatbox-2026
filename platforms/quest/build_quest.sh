@@ -36,7 +36,7 @@ MSYS_NO_PATHCONV=1 docker run --rm \
 # buildozer names the APK after package.name (internal Android identity, left
 # as "crystalclient" so existing installs keep updating in place) - rename
 # the output file itself to the public Crystal Chatbox branding.
-VERSION="$(cat "$ROOT_DIR/version.txt")"
+VERSION="$(grep -m1 '^version *= *' "$ROOT_DIR/buildozer.spec" | sed 's/^version *= *//' | tr -d '[:space:]')"
 for src in "$ROOT_DIR"/bin/crystalclient-"$VERSION"-arm64-v8a-"$BUILD_TYPE".apk; do
     [ -f "$src" ] || continue
     dest="$ROOT_DIR/bin/Crystal_Chatbox-$VERSION-Quest-arm64-v8a-$BUILD_TYPE.apk"
