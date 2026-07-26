@@ -375,6 +375,12 @@ def _fix_mojibake(value):
     return MOJIBAKE_FIXES.get(value, value)
 
 
+_LEGACY_BRAND_TEXT_FIXES = {
+    "Crystal Client out now in meta store!": "Crystal Chatbox out now in meta store!",
+    "Crystal Client in meta store!": "Crystal Chatbox in meta store!",
+}
+
+
 def _default_presets_from_settings(data):
     custom_texts = data.get("custom_texts") or DEFAULTS["custom_texts"]
     template = custom_texts[0] if custom_texts else "Hello, come chat!"
@@ -488,9 +494,18 @@ def migrate_settings(data):
         migrated["chatbox_scroll_speed"] = "normal"
     if migrated.get("theme") not in {"dark", "light"}:
         migrated["theme"] = "dark"
-    migrated["custom_texts"] = [str(v)[:500] for v in (migrated.get("custom_texts") or DEFAULTS["custom_texts"])]
+    migrated["custom_texts"] = [
+        _LEGACY_BRAND_TEXT_FIXES.get(str(v)[:500], str(v)[:500])
+        for v in (migrated.get("custom_texts") or DEFAULTS["custom_texts"])
+    ]
     if not isinstance(migrated.get("presets"), list) or not migrated["presets"]:
         migrated["presets"] = _default_presets_from_settings(migrated)
+    elif isinstance(migrated.get("presets"), list):
+        for preset in migrated["presets"]:
+            if isinstance(preset, dict) and preset.get("id") == "default-status":
+                template = preset.get("message_template")
+                if template in _LEGACY_BRAND_TEXT_FIXES:
+                    preset["message_template"] = _LEGACY_BRAND_TEXT_FIXES[template]
     if not isinstance(migrated.get("automation_rules"), list):
         migrated["automation_rules"] = _default_automations_from_settings(migrated)
     if not isinstance(migrated.get("favorite_messages"), list):
