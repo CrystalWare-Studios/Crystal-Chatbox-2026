@@ -13,7 +13,7 @@ from settings import DATA_DIR
 
 VRCHAT_BASE = "https://api.vrchat.cloud/api/1"
 SESSION_FILE = os.path.join(DATA_DIR, "vrchat_session.json")
-USER_AGENT = "CrystalClient/1.0 (VRCX+)"
+USER_AGENT = "CrystalChatbox/1.0 (VRCX+)"
 
 _lock = threading.RLock()
 _session = requests.Session()

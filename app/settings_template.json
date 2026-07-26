@@ -5,7 +5,7 @@
     "spotify_client_secret": "",
     "spotify_refresh_token": "",
     "custom_texts": [
-        "Crystal Client out now in meta store!",
+        "Crystal Chatbox out now in meta store!",
         "Join the Discord to support us!"
     ],
     "refresh_interval": 3,

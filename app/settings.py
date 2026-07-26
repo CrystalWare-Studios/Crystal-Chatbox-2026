@@ -213,7 +213,7 @@ DEFAULTS = {
     "fbt_quest_bridge_listen_ip": "0.0.0.0",
     "fbt_quest_bridge_listen_port": 7777,
     "fbt_quest_bridge_timeout_ms": 250.0,
-    "fbt_steamvr_bridge_dir": r"C:\Users\Public\CrystalClient\steamvr_bridge",
+    "fbt_steamvr_bridge_dir": r"C:\Users\Public\CrystalChatbox\steamvr_bridge",
     "fbt_mode": "vrchat_trackers",
     "fbt_camera_source": "local",
     "fbt_phone_camera_url": "",

@@ -62,7 +62,7 @@ $env:PYTHONPATH = $AppDir
 
 Write-Host ""
 $DisplayPort = if ($env:PORT) { $env:PORT } else { "5000" }
-Write-Host "Starting Crystal Client on http://127.0.0.1:$DisplayPort"
+Write-Host "Starting Crystal Chatbox on http://127.0.0.1:$DisplayPort"
 Write-Host ""
 
 Set-Location $ChatboxDir

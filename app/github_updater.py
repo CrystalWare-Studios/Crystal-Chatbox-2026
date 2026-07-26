@@ -189,7 +189,7 @@ def apply_update(download_url):
     try:
         target_exe = sys.executable
         temp_dir = tempfile.gettempdir()
-        new_exe_path = os.path.join(temp_dir, 'CrystalClientUpdate.exe')
+        new_exe_path = os.path.join(temp_dir, 'CrystalChatboxUpdate.exe')
 
         response = requests.get(download_url, stream=True, timeout=60)
         response.raise_for_status()
@@ -202,7 +202,7 @@ def apply_update(download_url):
             return {'success': False, 'message': 'The downloaded update looked incomplete. Please try again.'}
 
         pid = os.getpid()
-        script_path = os.path.join(temp_dir, 'crystal_client_updater.bat')
+        script_path = os.path.join(temp_dir, 'crystal_chatbox_updater.bat')
         script = (
             "@echo off\r\n"
             ":wait\r\n"
