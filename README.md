@@ -47,11 +47,15 @@
 
 ## Platform Support
 
+Windows (Steam and standalone) and Quest are the primary, actively supported platforms.
+macOS is source-available and community-maintained — it runs, but isn't a maintained
+build target, so you compile it yourself.
+
 | Platform | Status | Notes |
 |---------|--------|-------|
-| **Windows** | Available now | Full feature set|
-| **macOS** | Source-available | Full feature set except SteamVR battery. |
-| **Android / Quest (.apk)** | Available on github or on the Meta Store|
+| **Windows** | Primary | Full feature set. Standalone .exe now, Steam release in progress. |
+| **Quest (.apk)** | Primary | Available on GitHub or the Meta Store. |
+| **macOS** | Optional / self-compile | Full feature set except SteamVR battery. See [`platforms/macos/README.md`](platforms/macos/README.md). |
 | **Linux** | Planned | — |
 
 ---
@@ -63,18 +67,39 @@
 3. In VRChat, open **Action Menu → Options → OSC → Enable**.
 4. Follow the in-app setup guide the first time you open it. It walks you through OSC, your first message, and Now Playing (automatic on Windows — see the FAQ below for macOS/Quest).
 
+## Repo layout
+
+```
+app/          # single shared source tree - all platforms run this, edit here
+platforms/
+  windows/    # PyInstaller entrypoint, run/build scripts
+  quest/      # buildozer/p4a entrypoint + foreground-service, build script
+  macos/      # PyInstaller entrypoint, run script (self-compile only)
+steam/        # Steam packaging scaffold (see steam/README.md)
+```
+
+`app/` is the only place application logic lives. Each platform's `main.py` is a thin
+entrypoint; Quest additionally has a foreground-service split (`service/main.py`) to
+avoid Android's background-process kill under memory pressure.
+
 ## Running from source
 
 Requires Python 3.11+.
 
 ```bash
-cd "PC/Windows/Crystal-Chatbox-Source-Code/Crystal Chatbox"   # or PC/MacOS/...
+cd platforms/windows   # or platforms/macos
 python -m venv .venv
 .venv\Scripts\activate      # Windows
 source .venv/bin/activate   # macOS / Linux
 pip install -r requirements.txt
-python main.py              # add --nogui to serve to a browser instead of a window
+PYTHONPATH=../../app python main.py   # add --nogui to serve to a browser instead of a window
 ```
+
+Or just use the launcher scripts, which set `PYTHONPATH` for you:
+`platforms/windows/run_windows.ps1` (or `.bat`) / `platforms/macos/run_mac.sh`.
+
+To build a distributable Windows .exe: `platforms/windows/build_windows.ps1`.
+To build a Quest APK (needs Docker): `platforms/quest/build_quest.sh [debug|release]`.
 
 ---
 
