@@ -684,6 +684,7 @@
                         <span>Preview</span>
                         <pre id="appearance_frame_preview" class="frame-preview">Select a frame to preview it here.</pre>
                     </div>
+                    <label class="switch-row" id="appearance_frame_wrap_field" style="display:none;"><input id="appearance_frame_wrap" type="checkbox"> <span>Wrap long lines onto extra frame lines instead of cutting them off</span></label>
                     <label class="field">
                         <span>When a message is too long for VRChat's limit</span>
                         <select id="appearance_overflow_mode">
@@ -704,6 +705,16 @@
                         </select>
                     </label>
                     <div class="button-row"><button id="save_appearance" type="button">Save appearance</button></div>
+                </article>
+                <article class="panel" id="scroll_settings_field" style="display:none;">
+                    <div class="panel-head">
+                        <div>
+                            <h3>Scroll Behavior</h3>
+                            <p>Choose which integrations scroll like a ticker when too long. Turned off ones get cut off with "..." instead.</p>
+                        </div>
+                    </div>
+                    <div id="scroll_settings_grid" class="button-row wrap"></div>
+                    <div class="button-row"><button id="save_scroll_settings" type="button">Save scroll settings</button></div>
                 </article>
                 <article class="panel">
                     <div class="panel-head">
