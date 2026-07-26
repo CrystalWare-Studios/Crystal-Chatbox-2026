@@ -33,5 +33,16 @@ MSYS_NO_PATHCONV=1 docker run --rm \
     "${SIGN_ARGS[@]}" \
     kivy/buildozer:latest android "$BUILD_TYPE"
 
+# buildozer names the APK after package.name (internal Android identity, left
+# as "crystalclient" so existing installs keep updating in place) - rename
+# the output file itself to the public Crystal Chatbox branding.
+VERSION="$(cat "$ROOT_DIR/version.txt")"
+for src in "$ROOT_DIR"/bin/crystalclient-"$VERSION"-arm64-v8a-"$BUILD_TYPE".apk; do
+    [ -f "$src" ] || continue
+    dest="$ROOT_DIR/bin/Crystal_Chatbox-$VERSION-Quest-arm64-v8a-$BUILD_TYPE.apk"
+    mv -f "$src" "$dest"
+    echo "Renamed to $(basename "$dest")"
+done
+
 echo ""
 echo "Done. APK(s) in $ROOT_DIR/bin/"
