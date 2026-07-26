@@ -510,7 +510,17 @@ def _get_marquee_window(text, width, advance_page, content_key=None):
     return window
 
 
-def _apply_chatbox_overflow(message, advance_page=False, content_key=None):
+_SCROLL_ROLE_ALIASES = {"progress": "song", "system": "system_stats"}
+
+
+def _scroll_enabled_for_role(role):
+    if not role:
+        return True
+    key = _SCROLL_ROLE_ALIASES.get(role, role)
+    return bool(SETTINGS.get(f"{key}_scroll_enabled", True))
+
+
+def _apply_chatbox_overflow(message, advance_page=False, content_key=None, line_roles=None):
     mode = SETTINGS.get("chatbox_overflow_mode", "smart")
     if mode == "off":
         return message
@@ -526,12 +536,18 @@ def _apply_chatbox_overflow(message, advance_page=False, content_key=None):
     if mode == "page":
         return _get_paged_message(message, max_len, advance_page, content_key=content_key)
     if mode == "scroll":
+        def scroll_or_truncate(line, width, key):
+            role = (line_roles or {}).get(line)
+            if not _scroll_enabled_for_role(role):
+                return chatbox_frames.truncate_line(line, width)
+            return _get_marquee_window(line, width, advance_page, content_key=key)
+
         lines = message.split("\n")
         if len(lines) == 1:
-            return _get_marquee_window(message, max_len, advance_page, content_key=content_key)
+            return scroll_or_truncate(message, max_len, content_key)
         result_lines = []
         for index, line in enumerate(lines):
-            window = _get_marquee_window(line, max_len, advance_page, content_key=f"row:{index}")
+            window = scroll_or_truncate(line, max_len, f"row:{index}")
             result_lines.append(window)
         combined = "\n".join(result_lines)
         return combined if len(combined) <= max_len else smart_truncate_message(combined)
@@ -1141,6 +1157,15 @@ def get_current_preview(advance_page=False):
         "total_time": total_time_line
     }
 
+    line_roles = {}
+    for role, value in template_values.items():
+        if value:
+            line_roles[value] = role
+    if custom_line:
+        line_roles[custom_line] = "custom"
+    if progress_line:
+        line_roles[progress_line] = "progress"
+
     if SETTINGS.get("chatbox_template_enabled", False):
         result = _render_chatbox_template(template_values)
     else:
@@ -1232,15 +1257,6 @@ def get_current_preview(advance_page=False):
                     joined = "     •     ".join(replace_variables(t) for t in all_custom)
                     custom_marquee_source = f"{custom_emoji} {joined}" if _icon_enabled("custom") and custom_emoji else joined
 
-            line_roles = {}
-            for role, value in template_values.items():
-                if value:
-                    line_roles[value] = role
-            if custom_line:
-                line_roles[custom_line] = "custom"
-            if progress_line:
-                line_roles[progress_line] = "progress"
-
             advanced_lines = set()
             line_positions = {}
 
@@ -1252,6 +1268,8 @@ def get_current_preview(advance_page=False):
                     if line not in line_positions:
                         line_positions[line] = len(line_positions)
                     slot_key = f"pos:{line_positions[line]}"
+                if not _scroll_enabled_for_role(slot_key):
+                    return chatbox_frames.truncate_line(source, w).center(w)
                 should_advance = advance_page and slot_key not in advanced_lines
                 window = _get_marquee_window(source, w, should_advance, content_key=f"role:{slot_key}")
                 if should_advance:
@@ -1267,11 +1285,17 @@ def get_current_preview(advance_page=False):
 
     if frame_style and frame_style != "none":
         try:
-            result = chatbox_frames.apply_frame(result, frame_style, max_total_length=max_len, emoji=frame_emoji, custom_frames=custom_frames)
+            if SETTINGS.get("chatbox_frame_wrap", False):
+                wrap_width, wrap_lines_cap = chatbox_frames.plan_frame_capacity(frame_style, max_len, emoji=frame_emoji, custom_frames=custom_frames)
+                wrapped_text = chatbox_frames.wrap_for_frame(result, wrap_width)
+                capped_text = "\n".join(wrapped_text.split("\n")[:wrap_lines_cap])
+                result = chatbox_frames.apply_frame(capped_text, frame_style, max_total_length=max_len, emoji=frame_emoji, custom_frames=custom_frames)
+            else:
+                result = chatbox_frames.apply_frame(result, frame_style, max_total_length=max_len, emoji=frame_emoji, custom_frames=custom_frames)
         except Exception as e:
             log_error(f"Failed to apply frame style '{frame_style}'", e)
 
-    result = _apply_chatbox_overflow(result, advance_page=advance_page, content_key=page_content_key)
+    result = _apply_chatbox_overflow(result, advance_page=advance_page, content_key=page_content_key, line_roles=line_roles)
 
     return result
 

@@ -56,6 +56,26 @@
         return true;
     });
 
+    const SCROLL_SETTINGS = [
+        { label: "Time", enabledKey: "time_scroll_enabled" },
+        { label: "Custom Messages", enabledKey: "custom_scroll_enabled" },
+        { label: "Music", enabledKey: "song_scroll_enabled" },
+        { label: "Active Window", enabledKey: "window_scroll_enabled" },
+        { label: "Heart Rate", enabledKey: "heartrate_scroll_enabled" },
+        { label: "Weather", enabledKey: "weather_scroll_enabled" },
+        { label: "System Stats", enabledKey: "system_stats_scroll_enabled" },
+        { label: IS_QUEST ? "Quest Battery" : "VR Battery", enabledKey: "vr_battery_scroll_enabled" },
+        { label: IS_QUEST ? "Quest Volume" : "System Volume", enabledKey: "volume_scroll_enabled" },
+        { label: "Quest Storage", enabledKey: "device_storage_scroll_enabled" },
+        { label: "AFK", enabledKey: "afk_scroll_enabled" },
+        { label: "Uptime", enabledKey: "uptime_scroll_enabled" },
+        { label: "Total Time", enabledKey: "total_time_scroll_enabled" }
+    ].filter((item) => {
+        if (IS_QUEST && item.enabledKey === "window_scroll_enabled") return false;
+        if (!IS_QUEST && item.enabledKey === "device_storage_scroll_enabled") return false;
+        return true;
+    });
+
     function isSpacerKey(key) {
         return typeof key === "string" && key.startsWith("spacer_");
     }
@@ -930,6 +950,7 @@
                 text_effect: $("appearance_effect").value,
                 chatbox_frame: $("appearance_frame").value,
                 chatbox_frame_emoji: $("appearance_frame_emoji") ? ($("appearance_frame_emoji").value.trim() || "✨") : "✨",
+                chatbox_frame_wrap: $("appearance_frame_wrap") ? $("appearance_frame_wrap").checked : false,
                 chatbox_overflow_mode: $("appearance_overflow_mode") ? $("appearance_overflow_mode").value : "smart",
                 chatbox_scroll_speed: $("appearance_scroll_speed") ? $("appearance_scroll_speed").value : "normal",
                 chatbox_page_indicator: $("appearance_page_indicator") ? $("appearance_page_indicator").checked : true
@@ -943,7 +964,7 @@
             $("appearance_effect").addEventListener("change", () => markPendingEdit("appearance_effect"));
         }
         if ($("appearance_frame")) {
-            $("appearance_frame").addEventListener("change", () => { markPendingEdit("appearance_frame"); updateFrameEmojiVisibility(); refreshFramePreview(); });
+            $("appearance_frame").addEventListener("change", () => { markPendingEdit("appearance_frame"); updateFrameEmojiVisibility(); updateFrameWrapVisibility(); refreshFramePreview(); });
         }
         if ($("appearance_overflow_mode")) {
             $("appearance_overflow_mode").addEventListener("change", () => { markPendingEdit("appearance_overflow_mode"); updateScrollSpeedVisibility(); });
@@ -956,6 +977,7 @@
         }
         bindCustomFrameBuilder();
         bindIconSettings();
+        bindScrollSettings();
     }
 
     function renderIconSettingsGrid() {
@@ -1004,8 +1026,44 @@
     }
 
     function updateScrollSpeedVisibility() {
+        const isScroll = $("appearance_overflow_mode") && $("appearance_overflow_mode").value === "scroll";
         const field = $("appearance_scroll_speed_field");
-        if (field) field.style.display = ($("appearance_overflow_mode") && $("appearance_overflow_mode").value === "scroll") ? "" : "none";
+        if (field) field.style.display = isScroll ? "" : "none";
+        const scrollSettingsField = $("scroll_settings_field");
+        if (scrollSettingsField) scrollSettingsField.style.display = isScroll ? "" : "none";
+    }
+
+    function updateFrameWrapVisibility() {
+        const field = $("appearance_frame_wrap_field");
+        if (field) field.style.display = ($("appearance_frame") && $("appearance_frame").value !== "none") ? "" : "none";
+    }
+
+    function renderScrollSettingsGrid() {
+        const grid = $("scroll_settings_grid");
+        if (!grid) return;
+        const settings = getSettings();
+        grid.innerHTML = SCROLL_SETTINGS.map((item) => `
+            <label class="switch-row"><input type="checkbox" data-scroll-enabled="${escapeAttr(item.enabledKey)}" ${settings[item.enabledKey] !== false ? "checked" : ""}> <span>${escapeHtml(item.label)}</span></label>
+        `).join("");
+    }
+
+    function bindScrollSettings() {
+        renderScrollSettingsGrid();
+        onClick("save_scroll_settings", saveScrollSettings);
+    }
+
+    async function saveScrollSettings() {
+        try {
+            const patch = {};
+            $$("[data-scroll-enabled]").forEach((checkbox) => {
+                patch[checkbox.dataset.scrollEnabled] = checkbox.checked;
+            });
+            await saveSettings(patch);
+            await loadState({ silent: true });
+            toast("Scroll settings saved.", "success");
+        } catch (error) {
+            toast(error.message || "Could not save scroll settings.", "error");
+        }
     }
 
     function bindProfiles() {
@@ -3468,6 +3526,10 @@
             $("appearance_frame_emoji").value = settings.chatbox_frame_emoji || "✨";
         }
         updateFrameEmojiVisibility();
+        if ($("appearance_frame_wrap")) {
+            $("appearance_frame_wrap").checked = settings.chatbox_frame_wrap === true;
+        }
+        updateFrameWrapVisibility();
         if ($("appearance_overflow_mode") && document.activeElement !== $("appearance_overflow_mode") && !isPendingEdit("appearance_overflow_mode")) {
             $("appearance_overflow_mode").value = settings.chatbox_overflow_mode || "smart";
         }
