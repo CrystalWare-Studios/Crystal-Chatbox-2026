@@ -477,11 +477,19 @@
                     <div id="spotify_method_switch_group">
                         <label class="field"><span>Now Playing source</span>
                             <select id="spotify_now_playing_method">
-                                {% if not is_android %}<option value="spotify_api">Spotify (Client ID/Secret)</option>{% endif %}
+                                <option value="discord">Discord (easiest - no new account)</option>
                                 <option value="lastfm">Last.fm</option>
-                                <option value="discord">Discord</option>
+                                {% if not is_android %}<option value="spotify_api">Spotify (Client ID/Secret, advanced)</option>{% endif %}
                             </select>
                         </label>
+                    </div>
+                    <div id="spotify_discord_group">
+                        <p><strong>Easiest option.</strong> Two steps, no new account:</p>
+                        <ol class="steps">
+                            <li>Click <strong>Login with Discord</strong> (top-right).</li>
+                            <li>Already connected Spotify to Discord? You're done. If not, open Discord on any device → <strong>User Settings → Connections</strong> → connect Spotify.</li>
+                        </ol>
+                        <p class="field-note">Whatever you're listening to shows up here automatically. Only works while your Discord status is visible (not set to Invisible).</p>
                     </div>
                     <div id="spotify_lastfm_group">
                         <p><strong>How to link Last.fm:</strong></p>
@@ -495,10 +503,6 @@
                             <button id="spotify_save_lastfm" class="secondary" type="button">Save Last.fm username</button>
                         </div>
                         <p class="field-note">This panel updates automatically once something you're scrobbling starts playing.</p>
-                    </div>
-                    <div id="spotify_discord_group">
-                        <p><strong>How to use Discord:</strong> Log in with Discord using the button top-right, then open Discord on any device and make sure Spotify is connected under <strong>User Settings → Connections</strong>. Whatever you're listening to on Spotify shows up here automatically through your Discord status - no extra setup.</p>
-                        <p class="field-note">This only works while you're in the CrystalWare Discord server with your status visible (not set to Invisible).</p>
                     </div>
                     {% if not is_android %}
                     <div id="spotify_client_setup_group">
