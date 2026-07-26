@@ -723,13 +723,13 @@
                 <article class="panel">
                     <div class="panel-head">
                         <div>
-                            <h3>Create Your Own Border</h3>
+                            <h3>Create Your Own Frame</h3>
                             <p>Design a custom frame with your own corners, edges, or emoji. It shows up in the Frame list above once saved.</p>
                         </div>
                     </div>
-                    <label class="field"><span>Name</span><input id="custom_frame_name" type="text" maxlength="40" placeholder="My border"></label>
+                    <label class="field"><span>Name</span><input id="custom_frame_name" type="text" maxlength="40" placeholder="My frame"></label>
                     <label class="field">
-                        <span>Border type</span>
+                        <span>Frame type</span>
                         <select id="custom_frame_mode">
                             <option value="box">Full box (all four sides)</option>
                             <option value="bracket">Brackets (each line wrapped, no top/bottom)</option>
@@ -752,14 +752,14 @@
                         <span>Emoji</span>
                         <input id="custom_frame_emoji" type="text" maxlength="8" placeholder="✨">
                     </label>
-                    <label class="switch-row" id="custom_frame_padding_field"><input id="custom_frame_padding" type="checkbox" checked> <span>Add a space between the border and your text</span></label>
+                    <label class="switch-row" id="custom_frame_padding_field"><input id="custom_frame_padding" type="checkbox" checked> <span>Add a space between the frame and your text</span></label>
                     <div class="field">
                         <span>Preview</span>
                         <pre id="custom_frame_preview" class="frame-preview">Fill in the fields above to preview.</pre>
                     </div>
                     <div class="button-row wrap">
-                        <button id="save_custom_frame" type="button">Save border</button>
-                        <button id="new_custom_frame" class="secondary" type="button">New border</button>
+                        <button id="save_custom_frame" type="button">Save frame</button>
+                        <button id="new_custom_frame" class="secondary" type="button">New frame</button>
                     </div>
                     <div id="custom_frames_list" class="item-list compact-list"></div>
                 </article>
@@ -868,7 +868,7 @@
             <div class="vrchat-subnav" role="tablist">
                 <button class="vrchat-tab-btn active" data-vrchat-tab="setup" type="button">Setup</button>
                 <button class="vrchat-tab-btn" data-vrchat-tab="friends" type="button">Friends</button>
-                <button class="vrchat-tab-btn" data-vrchat-tab="avatars" type="button">Avatars</button>
+                <button class="vrchat-tab-btn" data-vrchat-tab="avatars" type="button">Avatar Search</button>
                 {% if not is_android %}<button class="vrchat-tab-btn" data-vrchat-tab="ingame" type="button">InGame</button>{% endif %}
                 <button class="vrchat-tab-btn" data-vrchat-tab="search" type="button">User Search</button>
                 <button class="vrchat-tab-btn" data-vrchat-tab="favorites" type="button">Favorites</button>
@@ -899,7 +899,7 @@
                     </article>
                     <article class="panel">
                         <h3>Avatar Search Providers</h3>
-                        <p>Community avatar-search providers used by the Avatars tab, since VRChat's own API only searches your own avatars.</p>
+                        <p>Community avatar-search providers used by the Avatar Search tab, since VRChat's own API only searches your own avatars.</p>
                         <label class="switch-row"><input id="vrcx_provider_enabled" type="checkbox"> <span>Use external avatar provider URLs</span></label>
                         <label class="field"><span>Provider URLs</span><textarea id="vrcx_provider_urls" rows="3" placeholder="One provider search URL per line"></textarea></label>
                         <div class="button-row wrap">
@@ -1156,7 +1156,7 @@
         </div>
         <div class="wizard-step" data-step="6">
             <h4>Step 5 — Make it yours</h4>
-            <p>Under <strong>Appearance</strong> you can add borders, text effects, and a few display modes. That's it for now — the rest you can explore anytime.</p>
+            <p>Under <strong>Appearance</strong> you can add frames, text effects, and a few display modes. That's it for now — the rest you can explore anytime.</p>
         </div>
         <div class="wizard-step" data-step="7">
             <h4>All set</h4>
