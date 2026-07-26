@@ -29,7 +29,7 @@ FRAME_STYLES = {
     },
     "dots": {
         "name": "Dots",
-        "description": "Simple dotted border",
+        "description": "Simple dotted frame",
         "top_left": ".",
         "top_right": ".",
         "bottom_left": ".",
@@ -40,7 +40,7 @@ FRAME_STYLES = {
     },
     "dashes": {
         "name": "Dashes",
-        "description": "Clean dash border",
+        "description": "Clean dash frame",
         "top_left": "+",
         "top_right": "+",
         "bottom_left": "+",
@@ -62,7 +62,7 @@ FRAME_STYLES = {
     },
     "stars": {
         "name": "Stars",
-        "description": "Decorative star border",
+        "description": "Decorative star frame",
         "top_left": "*",
         "top_right": "*",
         "bottom_left": "*",
@@ -73,7 +73,7 @@ FRAME_STYLES = {
     },
     "hashtags": {
         "name": "Hashtags",
-        "description": "Bold hashtag border",
+        "description": "Bold hashtag frame",
         "top_left": "#",
         "top_right": "#",
         "bottom_left": "#",
@@ -84,7 +84,7 @@ FRAME_STYLES = {
     },
     "tildes": {
         "name": "Tildes",
-        "description": "Wavy tilde border",
+        "description": "Wavy tilde frame",
         "top_left": "~",
         "top_right": "~",
         "bottom_left": "~",
@@ -203,7 +203,7 @@ def custom_style_from_definition(definition):
         mode = "box"
     style = {
         "name": str(definition.get("name") or "Custom")[:40],
-        "description": "Custom border",
+        "description": "Custom frame",
         "top_left": str(definition.get("top_left", ""))[:6],
         "top_right": str(definition.get("top_right", ""))[:6],
         "bottom_left": str(definition.get("bottom_left", ""))[:6],
@@ -238,7 +238,7 @@ def get_frame_styles(custom_frames=None):
         styles.append({
             "id": custom_id,
             "name": str((definition or {}).get("name") or "Custom"),
-            "description": "Your custom border",
+            "description": "Your custom frame",
             "custom": True,
         })
     return styles

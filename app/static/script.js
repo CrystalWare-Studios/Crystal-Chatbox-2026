@@ -3262,7 +3262,7 @@
         });
         if ($("custom_frame_padding")) $("custom_frame_padding").addEventListener("change", scheduleCustomFramePreview);
         onClick("save_custom_frame", saveCustomFrame);
-        onClick("new_custom_frame", () => { newCustomFrame(); toast("Started a new border.", "success"); });
+        onClick("new_custom_frame", () => { newCustomFrame(); toast("Started a new frame.", "success"); });
         updateCustomFrameFieldVisibility();
         refreshCustomFrames();
     }
@@ -3321,7 +3321,7 @@
         try {
             const draft = buildCustomFrameDraft();
             if (!draft.name) {
-                toast("Enter a name for your border.", "error");
+                toast("Enter a name for your frame.", "error");
                 return;
             }
             const body = { ...draft };
@@ -3331,9 +3331,9 @@
             state.framesLoaded = false;
             await loadAppearanceOptions();
             await refreshCustomFrames();
-            toast("Border saved.", "success");
+            toast("Frame saved.", "success");
         } catch (error) {
-            toast(error.message || "Could not save border.", "error");
+            toast(error.message || "Could not save frame.", "error");
         }
     }
 
@@ -3373,7 +3373,7 @@
             const frames = payload.custom_frames || {};
             const entries = Object.entries(frames);
             if (!entries.length) {
-                list.innerHTML = `<div class="empty-state">No custom borders yet.</div>`;
+                list.innerHTML = `<div class="empty-state">No custom frames yet.</div>`;
                 return;
             }
             list.innerHTML = entries.map(([id, definition]) => `
@@ -3400,14 +3400,14 @@
                         state.framesLoaded = false;
                         await loadAppearanceOptions();
                         await refreshCustomFrames();
-                        toast("Border deleted.", "success");
+                        toast("Frame deleted.", "success");
                     } catch (error) {
-                        toast(error.message || "Could not delete border.", "error");
+                        toast(error.message || "Could not delete frame.", "error");
                     }
                 });
             });
         } catch (error) {
-            list.innerHTML = `<div class="empty-state">Could not load your custom borders.</div>`;
+            list.innerHTML = `<div class="empty-state">Could not load your custom frames.</div>`;
         }
     }
 

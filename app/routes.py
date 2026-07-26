@@ -4042,14 +4042,14 @@ def create_app():
         data = request.get_json(silent=True) or {}
         name = str(data.get("name", "")).strip()
         if not name:
-            return _json_error("Enter a name for your border.", 400)
+            return _json_error("Enter a name for your frame.", 400)
         mode = str(data.get("mode", "box")).strip()
         if mode not in chatbox_frames.CUSTOM_FRAME_MODES:
-            return _json_error("Unknown border type.", 400)
+            return _json_error("Unknown frame type.", 400)
         frame_id = str(data.get("id", "")).strip()
         custom_frames = SETTINGS.setdefault("custom_frames", {})
         if not frame_id or frame_id not in custom_frames:
-            slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "border"
+            slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "frame"
             frame_id = f"custom_{slug}_{secrets.token_hex(3)}"
         custom_frames[frame_id] = {
             "name": name[:40],
