@@ -56,7 +56,7 @@ fi
 "$CHATBOX_PYTHON" -m pip install pywebview pyobjc-framework-Cocoa
 
 echo ""
-echo "Starting Crystal Client for macOS on http://127.0.0.1:${PORT:-5000}"
+echo "Starting Crystal Chatbox for macOS on http://127.0.0.1:${PORT:-5000}"
 echo ""
 
 export PYTHONPATH="$APP_DIR"

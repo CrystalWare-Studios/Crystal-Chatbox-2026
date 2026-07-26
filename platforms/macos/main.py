@@ -9,7 +9,7 @@ def _crash_log_path():
         os.makedirs(data_dir, exist_ok=True)
         return os.path.join(data_dir, "crash_log.txt")
     except Exception:
-        return os.path.join(os.path.expanduser("~"), "crystal_client_crash_log.txt")
+        return os.path.join(os.path.expanduser("~"), "crystal_chatbox_crash_log.txt")
 
 
 def _report_crash(exc_type, exc_value, exc_tb):
@@ -129,7 +129,7 @@ class DownloadAPI:
 
             downloads_path = os.path.expanduser("~/Downloads")
             from datetime import datetime
-            filename = f"crystal_client_crash_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+            filename = f"crystal_chatbox_crash_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
             dest_path = os.path.join(downloads_path, filename)
 
             shutil.copy2(log_file, dest_path)

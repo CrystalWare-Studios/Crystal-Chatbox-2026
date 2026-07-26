@@ -7,7 +7,7 @@ set "EXIT_CODE=%ERRORLEVEL%"
 
 if not "%EXIT_CODE%"=="0" (
     echo.
-    echo Crystal Client exited with code %EXIT_CODE%.
+    echo Crystal Chatbox exited with code %EXIT_CODE%.
     pause
 )
 
