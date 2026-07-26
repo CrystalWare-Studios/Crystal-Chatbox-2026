@@ -1248,7 +1248,7 @@ def get_current_preview(advance_page=False):
 
     if overflow_mode == "scroll" and frame_style != "none":
         try:
-            width, _lines = chatbox_frames.plan_frame_capacity(frame_style, max_len, emoji=frame_emoji, custom_frames=custom_frames)
+            width, lines_cap = chatbox_frames.plan_frame_capacity(frame_style, max_len, emoji=frame_emoji, custom_frames=custom_frames)
 
             custom_marquee_source = None
             if show_custom and custom_line:
@@ -1257,26 +1257,52 @@ def get_current_preview(advance_page=False):
                     joined = "     •     ".join(replace_variables(t) for t in all_custom)
                     custom_marquee_source = f"{custom_emoji} {joined}" if _icon_enabled("custom") and custom_emoji else joined
 
-            advanced_lines = set()
+            wrap_static_lines = SETTINGS.get("chatbox_frame_wrap", False)
             line_positions = {}
+            expanded_lines = []
+            line_kinds = {}
+
+            for raw_line in result.split("\n"):
+                if raw_line in line_roles:
+                    slot_key = line_roles[raw_line]
+                else:
+                    if raw_line not in line_positions:
+                        line_positions[raw_line] = len(line_positions)
+                    slot_key = f"pos:{line_positions[raw_line]}"
+
+                if _scroll_enabled_for_role(slot_key):
+                    expanded_lines.append(raw_line)
+                    line_kinds[raw_line] = ("scroll", slot_key)
+                elif wrap_static_lines:
+                    wrapped_line = chatbox_frames.wrap_for_frame(raw_line, width)
+                    for sub_line in wrapped_line.split("\n"):
+                        expanded_lines.append(sub_line)
+                        line_kinds[sub_line] = ("static", None)
+                else:
+                    expanded_lines.append(raw_line)
+                    line_kinds[raw_line] = ("static", None)
+
+            expanded_lines = expanded_lines[:lines_cap]
+            expanded_text = "\n".join(expanded_lines)
+
+            advanced_lines = set()
 
             def line_fit(line, w):
-                source = custom_marquee_source if (custom_marquee_source and line == custom_line) else line
-                if line in line_roles:
-                    slot_key = line_roles[line]
-                else:
-                    if line not in line_positions:
-                        line_positions[line] = len(line_positions)
-                    slot_key = f"pos:{line_positions[line]}"
-                if not _scroll_enabled_for_role(slot_key):
-                    return chatbox_frames.truncate_line(source, w).center(w)
-                should_advance = advance_page and slot_key not in advanced_lines
-                window = _get_marquee_window(source, w, should_advance, content_key=f"role:{slot_key}")
-                if should_advance:
-                    advanced_lines.add(slot_key)
-                return window.center(w)
+                kind, slot_key = line_kinds.get(line, ("static", None))
+                if kind == "scroll":
+                    source = custom_marquee_source if (custom_marquee_source and line == custom_line) else line
+                    should_advance = advance_page and slot_key not in advanced_lines
+                    window = _get_marquee_window(source, w, should_advance, content_key=f"role:{slot_key}")
+                    if should_advance:
+                        advanced_lines.add(slot_key)
+                    return window.center(w)
+                return chatbox_frames.truncate_line(line, w).center(w)
 
-            result = chatbox_frames.apply_frame(result, frame_style, max_total_length=max_len, emoji=frame_emoji, line_fit=line_fit, custom_frames=custom_frames)
+            result = chatbox_frames.apply_frame(
+                expanded_text, frame_style, max_total_length=max_len, emoji=frame_emoji,
+                line_fit=line_fit, custom_frames=custom_frames,
+                width=width if wrap_static_lines else None
+            )
             return result
         except Exception as e:
             log_error(f"Failed to apply scrolling frame style '{frame_style}'", e)
