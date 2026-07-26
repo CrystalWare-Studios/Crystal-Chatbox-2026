@@ -139,7 +139,7 @@ typing_state = {
 }
 
 current_time_text = ""
-current_custom_text = SETTINGS.get("custom_texts", ["Custom Message Test"])[0]
+current_custom_text = SETTINGS.get("custom_texts", ["Crystal Chatbox out now in meta store!"])[0]
 last_raw_chatbox_length = 0
 last_raw_chatbox_limit = 144
 last_message_sent = ""
@@ -157,7 +157,7 @@ MUSIC_PROGRESS = SETTINGS.get("music_progress", True)
 PROGRESS_STYLE = SETTINGS.get("progress_style", "bar")
 LAYOUT_ORDER = SETTINGS.get("layout_order", ["time","custom","vrchat_live","song","window","heartrate","weather","system_stats","afk"])
 
-current_custom_text = CUSTOM_TEXTS[0] if CUSTOM_TEXTS else "Custom Message Test"
+current_custom_text = CUSTOM_TEXTS[0] if CUSTOM_TEXTS else "Crystal Chatbox out now in meta store!"
 current_time_text = datetime.now().strftime("%I:%M %p").lstrip("0")
 
 def log_error(message, exception=None):
@@ -3666,7 +3666,7 @@ def create_app():
             text = request.form.get("customs", "").strip()
         lines = [l.strip() for l in text.splitlines() if l.strip()]
         if not lines:
-            lines = ["Custom Message Test"]
+            lines = ["Crystal Chatbox out now in meta store!"]
         SETTINGS["custom_texts"] = lines
         with open(SETTINGS_FILE, "wb") as f:
             f.write(json.dumps(SETTINGS, indent=4, ensure_ascii=False).encode("utf-8"))
@@ -3710,7 +3710,7 @@ def create_app():
         if 0 <= index < len(SETTINGS["custom_texts"]):
             SETTINGS["custom_texts"].pop(index)
             if not SETTINGS["custom_texts"]:
-                SETTINGS["custom_texts"] = ["Custom Message Test"]
+                SETTINGS["custom_texts"] = ["Crystal Chatbox out now in meta store!"]
             with open(SETTINGS_FILE, "wb") as f:
                 f.write(json.dumps(SETTINGS, indent=4, ensure_ascii=False).encode("utf-8"))
             nonlocal_vars_update_customs(SETTINGS["custom_texts"])
@@ -3851,7 +3851,7 @@ def create_app():
             global client, CUSTOM_TEXTS, current_custom_text, text_cycle_index
             CUSTOM_TEXTS = SETTINGS.get("custom_texts", [])
             text_cycle_index = 0
-            current_custom_text = CUSTOM_TEXTS[0] if CUSTOM_TEXTS else "Custom Message Test"
+            current_custom_text = CUSTOM_TEXTS[0] if CUSTOM_TEXTS else "Crystal Chatbox out now in meta store!"
             client = make_client()
             
             return jsonify({"ok": True}), 200

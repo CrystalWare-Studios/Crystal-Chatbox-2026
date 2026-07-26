@@ -32,7 +32,7 @@ DEFAULT_PROFILE = {
         "show_music": True,
         "show_window": False,
         "show_heartrate": False,
-        "custom_texts": ["Custom Message Test"],
+        "custom_texts": ["Crystal Chatbox out now in meta store!"],
         "time_emoji": "⏰",
         "song_emoji": "🎶",
         "window_emoji": "💻",
