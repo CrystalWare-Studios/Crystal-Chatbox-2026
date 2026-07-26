@@ -23,6 +23,7 @@ Crystal Chatbox Data/
 settings.json
 vrchat_session.json
 vrcx_plus_data.json
+crystalware_account.json
 profiles.json
 message_history.json
 app_events.jsonl
@@ -65,15 +66,25 @@ attached_assets/
 # active build target
 _removed_steamvr_driver_crystal/
 
-# Build artifacts (native driver / Android)
+# Build artifacts (native driver)
 steamvr_driver_crystal/build/
 steamvr_driver_crystal/bin/
-Other/Android/**/build/
-Other/Android/**/bin/
-Other/Android/**/.buildozer/
-Other/Android/**/.gradle/
-Other/Android/**/*.apk
-Other/Android/**/local.properties
+
+# Quest build staging - build_quest.sh copies app/*.py, templates/, and static/
+# into platforms/quest/ fresh before every build. Only main.py, android_power.py,
+# buildozer.spec, icon.png, and service/ are hand-maintained and tracked here.
+platforms/quest/*.py
+!platforms/quest/main.py
+!platforms/quest/android_power.py
+platforms/quest/templates/
+platforms/quest/static/
+platforms/quest/build/
+platforms/quest/bin/
+platforms/quest/Builds/
+platforms/quest/.buildozer/
+platforms/quest/.gradle/
+platforms/quest/*.apk
+platforms/quest/local.properties
 *.keystore
 *.jks
 
