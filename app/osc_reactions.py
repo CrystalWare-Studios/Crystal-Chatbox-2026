@@ -102,7 +102,7 @@ def _handle_avatar_change(address, *args):
         _fire_reaction(SETTINGS.get("avatar_change_message", "Just switched avatars! ✨"))
 
 
-def start_listener(port=9001):
+def start_listener(port=9001, listen_ip="127.0.0.1"):
     global _server, _server_thread
 
     if not OSC_SERVER_AVAILABLE:
@@ -121,7 +121,7 @@ def start_listener(port=9001):
         dispatcher = Dispatcher()
         dispatcher.map("/avatar/parameters/*", _handle_parameter)
         dispatcher.map("/avatar/change", _handle_avatar_change)
-        server = ThreadingOSCUDPServer(("127.0.0.1", port), dispatcher)
+        server = ThreadingOSCUDPServer((listen_ip, port), dispatcher)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         with _lock:
@@ -130,7 +130,7 @@ def start_listener(port=9001):
             _listener_status["running"] = True
             _listener_status["port"] = port
             _listener_status["error"] = ""
-        print(f"[OSC Reactions] Listening for VRChat avatar OSC on 127.0.0.1:{port}")
+        print(f"[OSC Reactions] Listening for VRChat avatar OSC on {listen_ip}:{port}")
     except OSError as e:
         with _lock:
             _listener_status["running"] = False

@@ -1735,7 +1735,10 @@ def create_app():
         afk_detector.set_afk_enabled(True)
 
     osc_reactions.set_reaction_callback(_trigger_temporary_message)
-    osc_reactions.start_listener(port=SETTINGS.get("osc_reactions_port", 9001))
+    osc_reactions.start_listener(
+        port=SETTINGS.get("osc_reactions_port", 9001),
+        listen_ip="0.0.0.0" if IS_ANDROID else "127.0.0.1"
+    )
 
     global_hotkeys.set_send_callback(_trigger_temporary_message)
     global_hotkeys.configure(SETTINGS.get("global_hotkeys_enabled", False), SETTINGS.get("global_hotkeys", []))

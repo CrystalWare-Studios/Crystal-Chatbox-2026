@@ -52,7 +52,12 @@ tracker_lock = threading.Lock()
 
 
 def _now_playing_method():
-    method = SETTINGS.get("now_playing_method", "lastfm" if IS_ANDROID else "spotify_api")
+    method = SETTINGS.get("now_playing_method")
+    if not method:
+        if IS_ANDROID:
+            method = "discord" if crystalware_cloud.is_logged_in() else "lastfm"
+        else:
+            method = "spotify_api"
     if method == "spotify_api" and IS_ANDROID:
         return "lastfm"
     return method
