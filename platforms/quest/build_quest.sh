@@ -14,9 +14,23 @@ cp -r "$APP_DIR/static" "$ROOT_DIR/static"
 
 echo "Building Quest APK ($BUILD_TYPE) via Docker/buildozer ..."
 cd "$ROOT_DIR"
+
+SIGN_ARGS=()
+if [ "$BUILD_TYPE" = "release" ] && [ -n "${QUEST_KEYSTORE_PATH:-}" ]; then
+    echo "Release signing enabled with keystore: $QUEST_KEYSTORE_PATH"
+    SIGN_ARGS+=(
+        -v "$QUEST_KEYSTORE_PATH":/home/user/release.keystore
+        -e P4A_RELEASE_KEYSTORE=/home/user/release.keystore
+        -e P4A_RELEASE_KEYSTORE_PASSWD="$QUEST_KEYSTORE_PASSWD"
+        -e P4A_RELEASE_KEYALIAS="$QUEST_KEY_ALIAS"
+        -e P4A_RELEASE_KEYALIAS_PASSWD="$QUEST_KEY_PASSWD"
+    )
+fi
+
 MSYS_NO_PATHCONV=1 docker run --rm \
     -v "$(pwd)":/home/user/hostcwd \
     -v "$CACHE_VOLUME":/home/user/.buildozer \
+    "${SIGN_ARGS[@]}" \
     kivy/buildozer:latest android "$BUILD_TYPE"
 
 echo ""
