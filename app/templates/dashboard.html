@@ -520,20 +520,13 @@
                     <label class="switch-row"><input id="spotify_music_time" type="checkbox"> <span>Show elapsed/total time (e.g. [1:23 / 3:45])</span></label>
                     <label class="switch-row"><input id="spotify_music_progress" type="checkbox"> <span>Show music progress bar</span></label>
                     <label class="field"><span>Progress style</span><select id="spotify_progress_style"><option value="bar">Bar</option><option value="dots">Dots</option><option value="percentage">Percentage</option></select></label>
+                    <p class="field-note">Lyrics: shows the current line for whatever's playing, using the free <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a> database - no account or API key needed. Synced lyrics advance automatically as the song plays; unsynced lyrics show as one block that scrolls if Scroll Behavior is on for Lyrics.</p>
+                    <label class="switch-row"><input id="lyrics_enabled_setup" type="checkbox"> <span>Look up lyrics for the current song</span></label>
+                    <label class="switch-row"><input id="lyrics_show_setup" type="checkbox"> <span>Show lyrics in chatbox</span></label>
                     <div class="button-row wrap">
                         <button id="spotify_save_display" class="secondary" type="button">Save music display</button>
                     </div>
                     <div id="spotify_setup_status" class="field-note"></div>
-                </details>
-                <details class="panel collapsible" id="lyrics_setup_panel">
-                    <summary><h3>Lyrics</h3></summary>
-                    <p class="field-note">Shows the current line of lyrics for whatever's playing, using the free <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a> database - no account or API key needed. When a song has synced lyrics, the line updates automatically as it plays. When only plain lyrics are found, they'll scroll instead if Scroll Behavior is turned on for Lyrics.</p>
-                    <label class="switch-row"><input id="lyrics_enabled_setup" type="checkbox"> <span>Look up lyrics for the current song</span></label>
-                    <label class="switch-row"><input id="lyrics_show_setup" type="checkbox"> <span>Show lyrics in chatbox</span></label>
-                    <div class="button-row wrap">
-                        <button id="lyrics_save_setup" class="secondary" type="button">Save lyrics settings</button>
-                    </div>
-                    <div id="lyrics_setup_status" class="field-note"></div>
                 </details>
                 <details class="panel collapsible" id="heart_rate_setup_panel">
                     <summary><h3>Heart Rate Setup</h3></summary>

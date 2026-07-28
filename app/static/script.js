@@ -733,7 +733,6 @@
             $("spotify_now_playing_method").addEventListener("change", saveNowPlayingMethod);
         }
         onClick("heart_rate_save_setup", saveHeartRateSettings);
-        onClick("lyrics_save_setup", saveLyricsSettings);
         onClick("location_zip_save", saveLocationZip);
         onClick("weather_temp_unit_save", saveWeatherTempUnit);
         const section = $("section_integrations");
@@ -758,6 +757,12 @@
     function renderSpotifySetup(spotify, settings) {
         const status = $("spotify_setup_status");
         if (!status) return;
+        if ($("lyrics_enabled_setup") && document.activeElement !== $("lyrics_enabled_setup")) {
+            $("lyrics_enabled_setup").checked = !!settings.lyrics_enabled;
+        }
+        if ($("lyrics_show_setup") && document.activeElement !== $("lyrics_show_setup")) {
+            $("lyrics_show_setup").checked = !!settings.show_lyrics;
+        }
         const source = spotify.source || "spotify_api";
         if ($("spotify_windows_media_group")) {
             $("spotify_windows_media_group").style.display = source === "windows_media" ? "" : "none";
@@ -848,19 +853,15 @@
             show_music: !!($("spotify_show_music") && $("spotify_show_music").checked),
             music_progress: !!($("spotify_music_progress") && $("spotify_music_progress").checked),
             music_time_enabled: !!($("spotify_music_time") && $("spotify_music_time").checked),
-            progress_style: $("spotify_progress_style") ? $("spotify_progress_style").value : "bar"
+            progress_style: $("spotify_progress_style") ? $("spotify_progress_style").value : "bar",
+            lyrics_enabled: !!($("lyrics_enabled_setup") && $("lyrics_enabled_setup").checked),
+            show_lyrics: !!($("lyrics_show_setup") && $("lyrics_show_setup").checked)
         });
         toast("Music display settings saved.", "success");
         await loadState({ silent: true });
     }
 
     function renderHeartRateSetup(heartRate, settings) {
-        if ($("lyrics_enabled_setup") && document.activeElement !== $("lyrics_enabled_setup")) {
-            $("lyrics_enabled_setup").checked = !!settings.lyrics_enabled;
-        }
-        if ($("lyrics_show_setup") && document.activeElement !== $("lyrics_show_setup")) {
-            $("lyrics_show_setup").checked = !!settings.show_lyrics;
-        }
         if ($("heart_rate_enabled_setup") && document.activeElement !== $("heart_rate_enabled_setup")) {
             $("heart_rate_enabled_setup").checked = !!settings.heart_rate_enabled;
         }
@@ -891,15 +892,6 @@
         });
         ["heart_rate_pulsoid_token_setup", "heart_rate_hyperate_id_setup", "heart_rate_custom_api_setup"].forEach((id) => setValue(id, ""));
         toast("Heart rate setup saved.", "success");
-        await loadState({ silent: true });
-    }
-
-    async function saveLyricsSettings() {
-        await saveSettings({
-            lyrics_enabled: !!($("lyrics_enabled_setup") && $("lyrics_enabled_setup").checked),
-            show_lyrics: !!($("lyrics_show_setup") && $("lyrics_show_setup").checked)
-        });
-        toast("Lyrics settings saved.", "success");
         await loadState({ silent: true });
     }
 
