@@ -20,6 +20,7 @@
         { key: "custom", label: "Custom Messages", setting: "show_custom", help: "Your rotating text lines." },
         { key: "vrchat_live", label: "VRChat Instance", setting: "show_vrchat_live", help: "Current world, player count, and join/leave events." },
         { key: "song", label: "Music", setting: "show_music", help: "Current Spotify song." },
+        { key: "lyrics", label: "Lyrics", setting: "show_lyrics", help: "Current line of lyrics, synced to playback when available." },
         { key: "window", label: "Active Window", setting: "show_window", help: "Current app or game." },
         { key: "heartrate", label: "Heart Rate", setting: "show_heartrate", help: "BPM from your selected source." },
         { key: "weather", label: "Weather", setting: "show_weather", help: "Weather from your configured location." },
@@ -40,6 +41,7 @@
         { label: "Time", emojiKey: "time_emoji", enabledKey: "time_icon_enabled", defaultEmoji: "⏰" },
         { label: "Custom Messages", emojiKey: "custom_emoji", enabledKey: "custom_icon_enabled", defaultEmoji: "💬" },
         { label: "Music", emojiKey: "song_emoji", enabledKey: "song_icon_enabled", defaultEmoji: "🎶" },
+        { label: "Lyrics", emojiKey: "lyrics_emoji", enabledKey: "lyrics_icon_enabled", defaultEmoji: "🎤" },
         { label: "Active Window", emojiKey: "window_emoji", enabledKey: "window_icon_enabled", defaultEmoji: "💻" },
         { label: "Heart Rate", emojiKey: "heartrate_emoji", enabledKey: "heartrate_icon_enabled", defaultEmoji: "❤️" },
         { label: "Weather", emojiKey: "weather_emoji", enabledKey: "weather_icon_enabled", defaultEmoji: "🌤️" },
@@ -60,6 +62,7 @@
         { label: "Time", enabledKey: "time_scroll_enabled" },
         { label: "Custom Messages", enabledKey: "custom_scroll_enabled" },
         { label: "Music", enabledKey: "song_scroll_enabled" },
+        { label: "Lyrics", enabledKey: "lyrics_scroll_enabled" },
         { label: "Active Window", enabledKey: "window_scroll_enabled" },
         { label: "Heart Rate", enabledKey: "heartrate_scroll_enabled" },
         { label: "Weather", enabledKey: "weather_scroll_enabled" },
@@ -730,6 +733,7 @@
             $("spotify_now_playing_method").addEventListener("change", saveNowPlayingMethod);
         }
         onClick("heart_rate_save_setup", saveHeartRateSettings);
+        onClick("lyrics_save_setup", saveLyricsSettings);
         onClick("location_zip_save", saveLocationZip);
         onClick("weather_temp_unit_save", saveWeatherTempUnit);
         const section = $("section_integrations");
@@ -851,6 +855,12 @@
     }
 
     function renderHeartRateSetup(heartRate, settings) {
+        if ($("lyrics_enabled_setup") && document.activeElement !== $("lyrics_enabled_setup")) {
+            $("lyrics_enabled_setup").checked = !!settings.lyrics_enabled;
+        }
+        if ($("lyrics_show_setup") && document.activeElement !== $("lyrics_show_setup")) {
+            $("lyrics_show_setup").checked = !!settings.show_lyrics;
+        }
         if ($("heart_rate_enabled_setup") && document.activeElement !== $("heart_rate_enabled_setup")) {
             $("heart_rate_enabled_setup").checked = !!settings.heart_rate_enabled;
         }
@@ -881,6 +891,15 @@
         });
         ["heart_rate_pulsoid_token_setup", "heart_rate_hyperate_id_setup", "heart_rate_custom_api_setup"].forEach((id) => setValue(id, ""));
         toast("Heart rate setup saved.", "success");
+        await loadState({ silent: true });
+    }
+
+    async function saveLyricsSettings() {
+        await saveSettings({
+            lyrics_enabled: !!($("lyrics_enabled_setup") && $("lyrics_enabled_setup").checked),
+            show_lyrics: !!($("lyrics_show_setup") && $("lyrics_show_setup").checked)
+        });
+        toast("Lyrics settings saved.", "success");
         await loadState({ silent: true });
     }
 

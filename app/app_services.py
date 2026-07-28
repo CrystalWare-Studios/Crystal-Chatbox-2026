@@ -48,7 +48,7 @@ SEARCH_INDEX = [
     {"section": "Chatbox", "target": "chatbox", "title": "Message editor", "keywords": "message send clear preview character duration resend variables templates favorites history"},
     {"section": "Presets", "target": "presets", "title": "Presets", "keywords": "preset templates duplicate export import priority profile"},
     {"section": "Automations", "target": "automations", "title": "Automations", "keywords": "rotating timed away idle random scheduled priority conflict"},
-    {"section": "Integrations", "target": "integrations", "title": "Integrations", "keywords": "OSC VRChat Spotify music weather heart rate soundpad VRCX body tracking router live instance joins leaves players world"},
+    {"section": "Integrations", "target": "integrations", "title": "Integrations", "keywords": "OSC VRChat Spotify music lyrics weather heart rate soundpad VRCX body tracking router live instance joins leaves players world"},
     {"section": "Appearance", "target": "appearance", "title": "Appearance", "keywords": "theme slim frame text effect compact streamer colors"},
     {"section": "Profiles", "target": "profiles", "title": "Profiles", "keywords": "profile streaming gaming work away switch save load"},
     {"section": "Logs", "target": "logs", "title": "Logs and diagnostics", "keywords": "logs errors warnings export diagnostics report troubleshooting"},

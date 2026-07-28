@@ -27,6 +27,7 @@ from pythonosc.udp_client import SimpleUDPClient
 from settings import DEFAULTS, DEFAULT_AVATAR_PROVIDER_URLS, SETTINGS, SETTINGS_FILE, create_backup, public_settings, save_settings, update_settings
 import app_services
 import spotify
+import lyrics_service
 import window_tracker
 import heart_rate_monitor
 import github_updater
@@ -233,6 +234,10 @@ def _sync_runtime_from_settings():
         global_hotkeys.configure(SETTINGS.get("global_hotkeys_enabled", False), SETTINGS.get("global_hotkeys", []))
     except Exception as exc:
         log_error("Failed to update global hotkeys", exc)
+    try:
+        lyrics_service.set_enabled(SETTINGS.get("lyrics_enabled", False))
+    except Exception as exc:
+        log_error("Failed to update lyrics tracker", exc)
 
 
 def _json_error(message, status=400, details=None):
@@ -340,6 +345,7 @@ CHATBOX_TEMPLATE_VARIABLES = [
     "last_event",
     "song",
     "progress",
+    "lyrics",
     "window",
     "heartrate",
     "weather",
@@ -993,6 +999,14 @@ def get_current_preview(advance_page=False):
             elif style == "percentage":
                 progress_line = f"{progress_percent}%"
 
+    lyrics_line = ""
+    if SETTINGS.get("show_lyrics", False) and sstate.get("song_text"):
+        lyric_text = lyrics_service.get_current_lyric_line(sstate.get("song_pos", 0))
+        if lyric_text:
+            lyrics_emoji = SETTINGS.get("lyrics_emoji", "🎤")
+            icon = f"{lyrics_emoji} " if _icon_enabled("lyrics") and lyrics_emoji else ""
+            lyrics_line = f"{icon}{lyric_text}"
+
     wstate = window_tracker.get_window_state()
     window_line = ""
     if show_window and wstate.get("app_name"):
@@ -1114,6 +1128,8 @@ def get_current_preview(advance_page=False):
         layout = list(layout) + ["afk"]
     if SETTINGS.get("show_vrchat_live", False) and "vrchat_live" not in layout:
         layout = list(layout) + ["vrchat_live"]
+    if SETTINGS.get("show_lyrics", False) and "lyrics" not in layout:
+        layout = list(layout) + ["lyrics"]
     if SETTINGS.get("show_vr_battery", False) and "vr_battery" not in layout:
         layout = list(layout) + ["vr_battery"]
     if SETTINGS.get("show_volume", False) and "volume" not in layout:
@@ -1144,6 +1160,7 @@ def get_current_preview(advance_page=False):
         **_build_vrchat_live_values(live_state),
         "song": song_line,
         "progress": progress_line,
+        "lyrics": lyrics_line,
         "window": window_line,
         "heartrate": heartrate_line,
         "weather": weather_line,
@@ -1180,6 +1197,8 @@ def get_current_preview(advance_page=False):
                 lines.append(song_line)
                 if progress_line:
                     lines.append(progress_line)
+            elif part == "lyrics" and lyrics_line:
+                lines.append(lyrics_line)
             elif part == "window" and window_line:
                 lines.append(window_line)
             elif part == "heartrate" and heartrate_line:
@@ -1739,6 +1758,7 @@ def create_app():
     vrchat_service.init()
 
     spotify.start_spotify_tracker(interval=SETTINGS.get("spotify_update_interval", 2))
+    lyrics_service.start_lyrics_tracker(enabled=SETTINGS.get("lyrics_enabled", False))
     window_tracker.start_window_tracker(interval=SETTINGS.get("window_tracking_interval", 2))
     heart_rate_monitor.start_heart_rate_tracker(interval=SETTINGS.get("heart_rate_update_interval", 5))
     weather_service.start_weather_tracker(
