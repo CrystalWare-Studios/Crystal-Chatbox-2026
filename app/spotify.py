@@ -362,12 +362,16 @@ def _get_current_playback(access_token):
     return response.json()
 
 
+_NOW_PLAYING_ERROR_GRACE = 3
+
+
 def _tracker_loop_platform(interval):
     global sp
     print("[Now Playing Tracker] Thread started")
     last_error_time = 0.0
     last_init_attempt = 0.0
     logged_waiting = False
+    consecutive_errors = 0
 
     while True:
         method = _now_playing_method()
@@ -377,16 +381,21 @@ def _tracker_loop_platform(interval):
         if method in ("lastfm", "discord"):
             try:
                 result = _read_lastfm_now_playing() if method == "lastfm" else _read_discord_now_playing()
+                consecutive_errors = 0
                 if result is None:
                     _set_state(status="active", last_error="", song_text="", song_pos=0, song_dur=0, album_art="")
                 else:
                     _set_state(status="active", last_error="", **result)
             except Exception as exc:
+                consecutive_errors += 1
                 friendly = _friendly_error(exc)
                 if time.time() - last_error_time > 60:
                     print(f"[Now Playing Tracker] {friendly}")
                     last_error_time = time.time()
-                _set_state(status="error", last_error=friendly, song_text="", song_pos=0, song_dur=0, album_art="")
+                if consecutive_errors >= _NOW_PLAYING_ERROR_GRACE:
+                    _set_state(status="error", last_error=friendly, song_text="", song_pos=0, song_dur=0, album_art="")
+                else:
+                    _set_state(last_error=friendly)
             time.sleep(max(8, interval))
             continue
 

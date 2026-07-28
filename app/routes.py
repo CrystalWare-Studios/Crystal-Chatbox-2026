@@ -1566,6 +1566,17 @@ def start_scroll_ticker():
     threading.Thread(target=ticker, daemon=True).start()
 
 
+_last_empty_preview_log = 0.0
+
+
+def _log_empty_preview_once():
+    global _last_empty_preview_log
+    now = time.time()
+    if now - _last_empty_preview_log > 60:
+        _last_empty_preview_log = now
+        log_error("Chatbox is on but has nothing to show this cycle (all enabled parts returned empty) - sent visible=1 with no text update")
+
+
 def start_vrc_updater():
     def updater():
         global current_time_text, current_custom_text, last_message_sent
@@ -1685,11 +1696,16 @@ def start_vrc_updater():
                             except:
                                 pass
                     else:
-                        preview_msg = get_current_preview(advance_page=True)
+                        try:
+                            preview_msg = get_current_preview(advance_page=True)
+                        except Exception as e:
+                            preview_msg = ""
+                            log_error("Preview generation failed - this cycle's chatbox update was skipped", e)
 
                         if chatbox_visible and not auto_send_paused and preview_msg:
                             send_to_vrchat(preview_msg)
                         elif chatbox_visible:
+                            _log_empty_preview_once()
                             try:
                                 client.send_message("/chatbox/visible", 1)
                             except:
@@ -3791,9 +3807,11 @@ def create_app():
         global client, CUSTOM_TEXTS, current_custom_text, text_cycle_index
         
         from settings import DEFAULTS
-        
-        SETTINGS.clear()
+
+        stale_keys = set(SETTINGS.keys()) - set(DEFAULTS.keys())
         SETTINGS.update(DEFAULTS)
+        for key in stale_keys:
+            SETTINGS.pop(key, None)
         _persist_settings(backup=True, label="reset_settings")
         
         CUSTOM_TEXTS = DEFAULTS["custom_texts"]
@@ -3842,9 +3860,11 @@ def create_app():
                 else:
                     validated_settings[key] = default_value
             
-            SETTINGS.clear()
+            stale_keys = set(SETTINGS.keys()) - set(validated_settings.keys())
             SETTINGS.update(validated_settings)
-            
+            for key in stale_keys:
+                SETTINGS.pop(key, None)
+
             with open(SETTINGS_FILE, "wb") as f:
                 f.write(json.dumps(SETTINGS, indent=4, ensure_ascii=False).encode("utf-8"))
             

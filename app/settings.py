@@ -586,8 +586,14 @@ def save_settings(settings=None, backup=False, label="save"):
             except Exception:
                 pass
         _atomic_write_json(SETTINGS_FILE, migrated)
-        SETTINGS.clear()
+        # Update before pruning stale keys (never clear-then-refill): background
+        # threads read SETTINGS.get(key, default) without taking settings_lock,
+        # so a clear() here would hand them fallback defaults - e.g. chatbox
+        # sends silently going dark - for however long the refill takes.
+        stale_keys = set(SETTINGS.keys()) - set(migrated.keys())
         SETTINGS.update(migrated)
+        for key in stale_keys:
+            SETTINGS.pop(key, None)
     return True
 
 
@@ -610,8 +616,10 @@ def reload_settings():
     with settings_lock:
         try:
             loaded_settings = migrate_settings(_load_settings_file())
-            SETTINGS.clear()
+            stale_keys = set(SETTINGS.keys()) - set(loaded_settings.keys())
             SETTINGS.update(loaded_settings)
+            for key in stale_keys:
+                SETTINGS.pop(key, None)
             print("[Settings] Settings reloaded from file")
             return True
         except Exception as e:

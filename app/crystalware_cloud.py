@@ -217,13 +217,9 @@ def set_leaderboard_visibility(anonymous):
 def get_now_playing():
     if not is_logged_in():
         return None
-    try:
-        resp = requests.get(f"{SERVER_BASE}/account/now-playing", headers=_auth_headers(), timeout=10)
-        if resp.status_code != 200:
-            return None
-        return resp.json()
-    except Exception:
-        return None
+    resp = requests.get(f"{SERVER_BASE}/account/now-playing", headers=_auth_headers(), timeout=10)
+    resp.raise_for_status()
+    return resp.json()
 
 
 def get_leaderboard():
