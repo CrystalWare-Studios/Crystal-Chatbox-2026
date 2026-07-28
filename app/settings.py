@@ -123,6 +123,8 @@ DEFAULTS = {
     "show_lyrics": False,
     "lyrics_emoji": "🎤",
     "lyrics_icon_enabled": True,
+    "lyrics_update_interval": 2,
+    "lyrics_max_length": 60,
     "window_emoji": "💻",
     "window_icon_enabled": True,
     "heartrate_emoji": "❤️",
@@ -174,6 +176,7 @@ DEFAULTS = {
     "chatbox_blank_line_mode": "hide",
     "chatbox_overflow_mode": "page",
     "chatbox_scroll_speed": "normal",
+    "chatbox_scroll_fixed_emoji": False,
     "chatbox_page_indicator": True,
     "time_scroll_enabled": True,
     "custom_scroll_enabled": True,
@@ -478,6 +481,9 @@ def migrate_settings(data):
     migrated["dashboard_update_interval"] = _coerce_int(migrated.get("dashboard_update_interval"), 3, 1, 60)
     migrated["typed_message_duration"] = _coerce_int(migrated.get("typed_message_duration"), 5, 1, 60)
     migrated["spotify_update_interval"] = _coerce_int(migrated.get("spotify_update_interval"), 2, 1, 60)
+    # 2s floor keeps this safely above VRChat's own ~1.5s chatbox OSC rate limit.
+    migrated["lyrics_update_interval"] = _coerce_int(migrated.get("lyrics_update_interval"), 2, 2, 30)
+    migrated["lyrics_max_length"] = _coerce_int(migrated.get("lyrics_max_length"), 60, 20, 140)
     migrated["spotify_client_id"] = str(migrated.get("spotify_client_id", ""))[:255]
     migrated["spotify_client_secret"] = str(migrated.get("spotify_client_secret", ""))[:255]
     migrated["lastfm_username"] = str(migrated.get("lastfm_username", ""))[:255]

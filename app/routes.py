@@ -526,6 +526,40 @@ def _scroll_enabled_for_role(role):
     return bool(SETTINGS.get(f"{key}_scroll_enabled", True))
 
 
+_ROLE_EMOJI_SETTINGS = {
+    "time": "time_emoji",
+    "custom": "custom_emoji",
+    "song": "song_emoji",
+    "progress": "song_emoji",
+    "lyrics": "lyrics_emoji",
+    "window": "window_emoji",
+    "heartrate": "heartrate_emoji",
+    "weather": "weather_emoji",
+    "system": "system_stats_emoji",
+    "vr_battery": "vr_battery_emoji",
+    "volume": "volume_emoji",
+    "device_storage": "device_storage_emoji",
+    "afk": "afk_emoji",
+    "uptime": "uptime_emoji",
+    "total_time": "total_time_emoji",
+}
+
+
+def _split_fixed_emoji(text, role):
+    if not role or not SETTINGS.get("chatbox_scroll_fixed_emoji", False):
+        return "", text
+    setting_key = _ROLE_EMOJI_SETTINGS.get(role)
+    if not setting_key or not _icon_enabled(_SCROLL_ROLE_ALIASES.get(role, role)):
+        return "", text
+    emoji = str(SETTINGS.get(setting_key, "")).strip()
+    if not emoji:
+        return "", text
+    prefix = f"{emoji} "
+    if text.startswith(prefix):
+        return prefix, text[len(prefix):]
+    return "", text
+
+
 def _apply_chatbox_overflow(message, advance_page=False, content_key=None, line_roles=None):
     mode = SETTINGS.get("chatbox_overflow_mode", "smart")
     if mode == "off":
@@ -546,7 +580,10 @@ def _apply_chatbox_overflow(message, advance_page=False, content_key=None, line_
             role = (line_roles or {}).get(line)
             if not _scroll_enabled_for_role(role):
                 return chatbox_frames.truncate_line(line, width)
-            return _get_marquee_window(line, width, advance_page, content_key=key)
+            prefix, remainder = _split_fixed_emoji(line, role)
+            inner_width = max(width - len(prefix), 1)
+            windowed = _get_marquee_window(remainder, inner_width, advance_page, content_key=key)
+            return prefix + windowed
 
         lines = message.split("\n")
         if len(lines) == 1:
@@ -1003,6 +1040,7 @@ def get_current_preview(advance_page=False):
     if SETTINGS.get("show_lyrics", False) and sstate.get("song_text"):
         lyric_text = lyrics_service.get_current_lyric_line(sstate.get("song_pos", 0))
         if lyric_text:
+            lyric_text = chatbox_frames.truncate_line(lyric_text, SETTINGS.get("lyrics_max_length", 60))
             lyrics_emoji = SETTINGS.get("lyrics_emoji", "🎤")
             icon = f"{lyrics_emoji} " if _icon_enabled("lyrics") and lyrics_emoji else ""
             lyrics_line = f"{icon}{lyric_text}"
@@ -1310,11 +1348,13 @@ def get_current_preview(advance_page=False):
                 kind, slot_key = line_kinds.get(line, ("static", None))
                 if kind == "scroll":
                     source = custom_marquee_source if (custom_marquee_source and line == custom_line) else line
+                    prefix, remainder = _split_fixed_emoji(source, slot_key)
+                    inner_width = max(w - len(prefix), 1)
                     should_advance = advance_page and slot_key not in advanced_lines
-                    window = _get_marquee_window(source, w, should_advance, content_key=f"role:{slot_key}")
+                    window = _get_marquee_window(remainder, inner_width, should_advance, content_key=f"role:{slot_key}")
                     if should_advance:
                         advanced_lines.add(slot_key)
-                    return window.center(w)
+                    return (prefix + window).center(w)
                 return chatbox_frames.truncate_line(line, w).center(w)
 
             result = chatbox_frames.apply_frame(
@@ -1596,6 +1636,15 @@ def _log_empty_preview_once():
         log_error("Chatbox is on but has nothing to show this cycle (all enabled parts returned empty) - sent visible=1 with no text update")
 
 
+def _current_lyric_line():
+    if not SETTINGS.get("show_lyrics", False):
+        return ""
+    sstate = spotify.get_spotify_state()
+    if not sstate.get("song_text"):
+        return ""
+    return lyrics_service.get_current_lyric_line(sstate.get("song_pos", 0))
+
+
 def start_vrc_updater():
     def updater():
         global current_time_text, current_custom_text, last_message_sent
@@ -1617,6 +1666,8 @@ def start_vrc_updater():
         last_quest_ip = SETTINGS.get("quest_ip", "")
         rotation_log_counter = 0
         last_typing_indicator = False
+        last_lyrics_send_time = 0.0
+        last_sent_lyric = ""
 
         while True:
             try:
@@ -1723,6 +1774,8 @@ def start_vrc_updater():
 
                         if chatbox_visible and not auto_send_paused and preview_msg:
                             send_to_vrchat(preview_msg)
+                            last_lyrics_send_time = time.time()
+                            last_sent_lyric = _current_lyric_line()
                         elif chatbox_visible:
                             _log_empty_preview_once()
                             try:
@@ -1734,6 +1787,24 @@ def start_vrc_updater():
                                 client.send_message("/chatbox/visible", 0)
                             except:
                                 pass
+                elif (
+                    SETTINGS.get("show_lyrics", False)
+                    and chatbox_visible
+                    and not auto_send_paused
+                    and not _scroll_is_active()
+                ):
+                    lyrics_interval = max(2, int(SETTINGS.get("lyrics_update_interval", 2)))
+                    if time.time() - last_lyrics_send_time >= lyrics_interval:
+                        current_lyric = _current_lyric_line()
+                        if current_lyric and current_lyric != last_sent_lyric:
+                            try:
+                                preview_msg = get_current_preview(advance_page=False)
+                            except Exception as e:
+                                preview_msg = ""
+                                log_error("Preview generation failed during lyrics refresh", e)
+                            if preview_msg and send_to_vrchat(preview_msg):
+                                last_lyrics_send_time = time.time()
+                                last_sent_lyric = current_lyric
 
             except Exception as e:
                 log_error("VRC Updater error", e)
