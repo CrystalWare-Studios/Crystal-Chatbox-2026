@@ -523,6 +523,11 @@
                     <p class="field-note">Lyrics: shows the current line for whatever's playing, using the free <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a> database - no account or API key needed. Synced lyrics advance automatically as the song plays; unsynced lyrics show as one block that scrolls if Scroll Behavior is on for Lyrics.</p>
                     <label class="switch-row"><input id="lyrics_enabled_setup" type="checkbox"> <span>Look up lyrics for the current song</span></label>
                     <label class="switch-row"><input id="lyrics_show_setup" type="checkbox"> <span>Show lyrics in chatbox</span></label>
+                    <div class="form-grid compact-fields">
+                        <label class="field"><span>Lyrics update every seconds</span><input id="lyrics_update_interval_setup" type="number" min="2" max="30" step="1"></label>
+                        <label class="field"><span>Max lyric line length</span><input id="lyrics_max_length_setup" type="number" min="20" max="140" step="5"></label>
+                    </div>
+                    <p class="field-note">Updates the chatbox as soon as the lyric line changes, separately from your normal message rotation - but never faster than every 2 seconds, to stay safely under VRChat's own chatbox rate limit. Longer lines get cut off at the max length instead of pushing other message parts out.</p>
                     <div class="button-row wrap">
                         <button id="spotify_save_display" class="secondary" type="button">Save music display</button>
                     </div>
@@ -711,6 +716,7 @@
                             <option value="fast">Fast</option>
                         </select>
                     </label>
+                    <label class="switch-row" id="appearance_scroll_fixed_emoji_field" style="display:none;"><input id="appearance_scroll_fixed_emoji" type="checkbox"> <span>Keep icons still instead of scrolling with the text</span></label>
                     <div class="button-row"><button id="save_appearance" type="button">Save appearance</button></div>
                 </article>
                 <article class="panel" id="scroll_settings_field" style="display:none;">

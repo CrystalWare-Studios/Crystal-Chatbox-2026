@@ -763,6 +763,12 @@
         if ($("lyrics_show_setup") && document.activeElement !== $("lyrics_show_setup")) {
             $("lyrics_show_setup").checked = !!settings.show_lyrics;
         }
+        if ($("lyrics_update_interval_setup") && document.activeElement !== $("lyrics_update_interval_setup")) {
+            $("lyrics_update_interval_setup").value = settings.lyrics_update_interval || 2;
+        }
+        if ($("lyrics_max_length_setup") && document.activeElement !== $("lyrics_max_length_setup")) {
+            $("lyrics_max_length_setup").value = settings.lyrics_max_length || 60;
+        }
         const source = spotify.source || "spotify_api";
         if ($("spotify_windows_media_group")) {
             $("spotify_windows_media_group").style.display = source === "windows_media" ? "" : "none";
@@ -855,7 +861,9 @@
             music_time_enabled: !!($("spotify_music_time") && $("spotify_music_time").checked),
             progress_style: $("spotify_progress_style") ? $("spotify_progress_style").value : "bar",
             lyrics_enabled: !!($("lyrics_enabled_setup") && $("lyrics_enabled_setup").checked),
-            show_lyrics: !!($("lyrics_show_setup") && $("lyrics_show_setup").checked)
+            show_lyrics: !!($("lyrics_show_setup") && $("lyrics_show_setup").checked),
+            lyrics_update_interval: $("lyrics_update_interval_setup") ? Number($("lyrics_update_interval_setup").value || 2) : 2,
+            lyrics_max_length: $("lyrics_max_length_setup") ? Number($("lyrics_max_length_setup").value || 60) : 60
         });
         toast("Music display settings saved.", "success");
         await loadState({ silent: true });
@@ -964,6 +972,7 @@
                 chatbox_frame_wrap: $("appearance_frame_wrap") ? $("appearance_frame_wrap").checked : false,
                 chatbox_overflow_mode: $("appearance_overflow_mode") ? $("appearance_overflow_mode").value : "smart",
                 chatbox_scroll_speed: $("appearance_scroll_speed") ? $("appearance_scroll_speed").value : "normal",
+                chatbox_scroll_fixed_emoji: $("appearance_scroll_fixed_emoji") ? $("appearance_scroll_fixed_emoji").checked : false,
                 chatbox_page_indicator: $("appearance_page_indicator") ? $("appearance_page_indicator").checked : true
             }, "Appearance saved.");
             clearPendingEdit("appearance_effect");
@@ -1040,6 +1049,8 @@
         const isScroll = $("appearance_overflow_mode") && $("appearance_overflow_mode").value === "scroll";
         const field = $("appearance_scroll_speed_field");
         if (field) field.style.display = isScroll ? "" : "none";
+        const fixedEmojiField = $("appearance_scroll_fixed_emoji_field");
+        if (fixedEmojiField) fixedEmojiField.style.display = isScroll ? "" : "none";
         const scrollSettingsField = $("scroll_settings_field");
         if (scrollSettingsField) scrollSettingsField.style.display = isScroll ? "" : "none";
     }
@@ -3546,6 +3557,9 @@
         }
         if ($("appearance_scroll_speed") && document.activeElement !== $("appearance_scroll_speed") && !isPendingEdit("appearance_scroll_speed")) {
             $("appearance_scroll_speed").value = settings.chatbox_scroll_speed || "normal";
+        }
+        if ($("appearance_scroll_fixed_emoji") && document.activeElement !== $("appearance_scroll_fixed_emoji")) {
+            $("appearance_scroll_fixed_emoji").checked = !!settings.chatbox_scroll_fixed_emoji;
         }
         updateScrollSpeedVisibility();
         if ($("appearance_page_indicator")) {
