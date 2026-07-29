@@ -322,6 +322,7 @@
         bindAccountIndicator();
         bindUpdatePanel();
         bindVrchatExplorer();
+        bindExternalLinks();
         showSection(state.currentSection);
         loadAppearanceOptions();
         loadState({ showSetup: true });
@@ -2726,6 +2727,25 @@
         }
         await api("/vrcx-plus/vrchat/2fa", { method: "POST", body: { code, method } });
         if ($("vrcx_2fa_code")) $("vrcx_2fa_code").value = "";
+    }
+
+    function bindExternalLinks() {
+        // Plain <a target="_blank"> clicks don't reliably leave the app's
+        // embedded webview (pywebview on Windows/Mac, a WebView on Quest),
+        // so route them through the backend, which hands off to a real
+        // browser (or an Android VIEW intent on Quest) instead.
+        document.addEventListener("click", async (event) => {
+            const link = event.target.closest("[data-external-link]");
+            if (!link) return;
+            event.preventDefault();
+            const url = link.dataset.externalLink || link.href;
+            if (!url) return;
+            try {
+                await api("/open_external_link", { method: "POST", body: { url } });
+            } catch (error) {
+                toast(error.message || "Couldn't open the link.", "error");
+            }
+        });
     }
 
     const vrchatState = {
