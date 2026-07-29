@@ -178,7 +178,7 @@
         if (syncBtn) {
             syncBtn.addEventListener("click", async () => {
                 if (menu) menu.style.display = "none";
-                if (!window.confirm("Save your current settings to your account? This overwrites whatever was saved there before.")) return;
+                if (!await confirmDialog("Save your current settings to your account? This overwrites whatever was saved there before.")) return;
                 try {
                     await api("/account/sync", { method: "POST" });
                     toast("Settings saved to your account.", "success");
@@ -190,7 +190,7 @@
         if (loadBtn) {
             loadBtn.addEventListener("click", async () => {
                 if (menu) menu.style.display = "none";
-                if (!window.confirm("This replaces the settings on this device with the ones saved to your account. Continue?")) return;
+                if (!await confirmDialog("This replaces the settings on this device with the ones saved to your account. Continue?")) return;
                 try {
                     await api("/account/load", { method: "POST" });
                     toast("Settings loaded from your account.", "success");
@@ -733,6 +733,9 @@
         if ($("spotify_now_playing_method")) {
             $("spotify_now_playing_method").addEventListener("change", saveNowPlayingMethod);
         }
+        if ($("spotify_progress_style")) {
+            $("spotify_progress_style").addEventListener("change", toggleCustomProgressBarFields);
+        }
         onClick("heart_rate_save_setup", saveHeartRateSettings);
         onClick("location_zip_save", saveLocationZip);
         onClick("weather_temp_unit_save", saveWeatherTempUnit);
@@ -801,6 +804,16 @@
         if ($("spotify_progress_style") && document.activeElement !== $("spotify_progress_style")) {
             $("spotify_progress_style").value = settings.progress_style || "bar";
         }
+        if ($("progress_bar_filled_char") && document.activeElement !== $("progress_bar_filled_char")) {
+            $("progress_bar_filled_char").value = settings.progress_bar_filled_char || "█";
+        }
+        if ($("progress_bar_empty_char") && document.activeElement !== $("progress_bar_empty_char")) {
+            $("progress_bar_empty_char").value = settings.progress_bar_empty_char || "░";
+        }
+        if ($("progress_bar_length") && document.activeElement !== $("progress_bar_length")) {
+            $("progress_bar_length").value = settings.progress_bar_length || 10;
+        }
+        toggleCustomProgressBarFields();
         const s = String(spotify.status || "").toLowerCase();
         if (source === "windows_media") {
             status.textContent = spotify.song_text ? "Reading now-playing from Windows Media." : "Reading from Windows Media. Nothing detected playing right now.";
@@ -849,12 +862,22 @@
         window.location.href = "/spotify-auth";
     }
 
+    function toggleCustomProgressBarFields() {
+        const fields = $("progress_bar_custom_fields");
+        if (!fields) return;
+        const style = $("spotify_progress_style") ? $("spotify_progress_style").value : "bar";
+        fields.hidden = style !== "custom";
+    }
+
     async function saveSpotifyDisplaySettings() {
         await saveSettings({
             show_music: !!($("spotify_show_music") && $("spotify_show_music").checked),
             music_progress: !!($("spotify_music_progress") && $("spotify_music_progress").checked),
             music_time_enabled: !!($("spotify_music_time") && $("spotify_music_time").checked),
             progress_style: $("spotify_progress_style") ? $("spotify_progress_style").value : "bar",
+            progress_bar_filled_char: $("progress_bar_filled_char") ? $("progress_bar_filled_char").value || "█" : "█",
+            progress_bar_empty_char: $("progress_bar_empty_char") ? $("progress_bar_empty_char").value || "░" : "░",
+            progress_bar_length: $("progress_bar_length") ? Number($("progress_bar_length").value || 10) : 10,
             lyrics_enabled: !!($("lyrics_enabled_setup") && $("lyrics_enabled_setup").checked),
             lyrics_update_interval: $("lyrics_update_interval_setup") ? Number($("lyrics_update_interval_setup").value || 2) : 2,
             lyrics_max_length: $("lyrics_max_length_setup") ? Number($("lyrics_max_length_setup").value || 60) : 60
@@ -1106,7 +1129,7 @@
             });
         });
         onClick("clear_logs", async () => {
-            if (!window.confirm("Clear the visible application logs?")) return;
+            if (!await confirmDialog("Clear the visible application logs?")) return;
             await api("/app/logs/clear", { method: "POST" });
             toast("Logs cleared.", "success");
             await refreshLogs();
@@ -1135,7 +1158,7 @@
         if (importInput) {
             importInput.addEventListener("change", async () => {
                 if (!importInput.files || !importInput.files[0]) return;
-                if (!window.confirm("Import this configuration? A backup will be created first.")) {
+                if (!await confirmDialog("Import this configuration? A backup will be created first.")) {
                     importInput.value = "";
                     return;
                 }
@@ -1153,7 +1176,7 @@
             });
         }
         onClick("reset_defaults", async () => {
-            if (!window.confirm("Reset all settings to defaults? This cannot be undone from the app.")) return;
+            if (!await confirmDialog("Reset all settings to defaults? This cannot be undone from the app.")) return;
             try {
                 await api("/reset_settings", { method: "POST" });
                 state.editorTouched = false;
@@ -1505,7 +1528,7 @@
             toast("Enter a message before sending.", "error");
             return;
         }
-        if (preview.will_truncate && !window.confirm("This message is over the VRChat limit. Send the shortened final output?")) {
+        if (preview.will_truncate && !await confirmDialog("This message is over the VRChat limit. Send the shortened final output?")) {
             return;
         }
         try {
@@ -2112,7 +2135,7 @@
     }
 
     async function deletePreset(id) {
-        if (!window.confirm("Delete this preset?")) return;
+        if (!await confirmDialog("Delete this preset?")) return;
         try {
             await api(`/app/presets/${encodeURIComponent(id)}`, { method: "DELETE" });
             state.selectedPresetId = "";
@@ -2213,7 +2236,7 @@
     }
 
     async function deleteAutomation(id) {
-        if (!window.confirm("Delete this automation?")) return;
+        if (!await confirmDialog("Delete this automation?")) return;
         try {
             await api(`/app/automations/${encodeURIComponent(id)}`, { method: "DELETE" });
             state.selectedAutomationId = "";
@@ -2415,6 +2438,12 @@
         if ($("mute_indicator_text") && document.activeElement !== $("mute_indicator_text")) {
             $("mute_indicator_text").value = settings.mute_indicator_text || "";
         }
+        if ($("speaking_indicator_enabled") && document.activeElement !== $("speaking_indicator_enabled")) {
+            $("speaking_indicator_enabled").checked = !!settings.speaking_indicator_enabled;
+        }
+        if ($("speaking_indicator_text") && document.activeElement !== $("speaking_indicator_text")) {
+            $("speaking_indicator_text").value = settings.speaking_indicator_text || "";
+        }
 
         const list = $("reaction_rules_list");
         if (!list) return;
@@ -2448,6 +2477,16 @@
             body: {
                 enabled: $("mute_indicator_enabled") ? $("mute_indicator_enabled").checked : false,
                 text: $("mute_indicator_text") ? $("mute_indicator_text").value : ""
+            }
+        });
+    }
+
+    async function saveSpeakingIndicatorSettings() {
+        await api("/osc-reactions/speaking-indicator", {
+            method: "POST",
+            body: {
+                enabled: $("speaking_indicator_enabled") ? $("speaking_indicator_enabled").checked : false,
+                text: $("speaking_indicator_text") ? $("speaking_indicator_text").value : ""
             }
         });
     }
@@ -2654,6 +2693,7 @@
             if (action === "vrchat_user_search") await vrchatUserSearch();
             if (action === "save_avatar_change") await saveAvatarChangeSettings();
             if (action === "save_mute_indicator") await saveMuteIndicatorSettings();
+            if (action === "save_speaking_indicator") await saveSpeakingIndicatorSettings();
             if (action === "add_reaction_rule") await addReactionRule();
             if (!quietActions.has(action)) {
                 toast("Integration updated.", "success");
@@ -2696,9 +2736,13 @@
     async function vrcxSelectAvatar(avatarId) {
         const id = String(avatarId || "").trim();
         if (!id) return;
-        if (!window.confirm("Switch to this avatar in VRChat?")) return;
-        await api("/vrcx-plus/vrchat/avatar-select", { method: "POST", body: { avatar_id: id } });
-        toast("Avatar change sent to VRChat.", "success");
+        if (!await confirmDialog("Switch to this avatar in VRChat?")) return;
+        try {
+            await api("/vrcx-plus/vrchat/avatar-select", { method: "POST", body: { avatar_id: id } });
+            toast("Avatar change sent to VRChat.", "success");
+        } catch (error) {
+            toast(error.message || "Couldn't switch avatar.", "error");
+        }
     }
 
     function vrcxProviderUrls() {
@@ -3500,7 +3544,7 @@
     }
 
     async function deleteProfile(name) {
-        if (!window.confirm(`Delete profile "${name}"?`)) return;
+        if (!await confirmDialog(`Delete profile "${name}"?`)) return;
         try {
             await api(`/app/profiles/${encodeURIComponent(name)}`, { method: "DELETE" });
             toast("Profile deleted.", "success");
@@ -3884,6 +3928,39 @@
             node.style.transform = "translateY(8px)";
         }, 3600);
         window.setTimeout(() => node.remove(), 4200);
+    }
+
+    function confirmDialog(message) {
+        // window.confirm() depends on the host app implementing a JS-dialog
+        // callback (WebChromeClient.onJsConfirm on Android) - p4a's webview
+        // bootstrap doesn't, so it silently returns undefined instead of
+        // ever showing anything, and every `if (!window.confirm(...)) return`
+        // call site quietly no-ops. This uses the same <dialog> element
+        // already proven working elsewhere in this page instead.
+        return new Promise((resolve) => {
+            const dialog = $("confirm_dialog");
+            if (!dialog || typeof dialog.showModal !== "function") {
+                resolve(true);
+                return;
+            }
+            const msgEl = $("confirm_dialog_message");
+            if (msgEl) msgEl.textContent = message;
+            const okBtn = dialog.querySelector("[data-confirm-ok]");
+            const cancelBtn = dialog.querySelector("[data-confirm-cancel]");
+            const cleanup = (result) => {
+                okBtn.removeEventListener("click", onOk);
+                cancelBtn.removeEventListener("click", onCancel);
+                dialog.removeEventListener("cancel", onCancel);
+                if (dialog.open) dialog.close();
+                resolve(result);
+            };
+            const onOk = () => cleanup(true);
+            const onCancel = () => cleanup(false);
+            okBtn.addEventListener("click", onOk);
+            cancelBtn.addEventListener("click", onCancel);
+            dialog.addEventListener("cancel", onCancel);
+            dialog.showModal();
+        });
     }
 
     function announceVrchatEvents(events) {

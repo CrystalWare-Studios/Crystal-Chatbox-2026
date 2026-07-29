@@ -517,7 +517,12 @@
                     <label class="switch-row"><input id="spotify_show_music" type="checkbox"> <span>Show music in chatbox</span></label>
                     <label class="switch-row"><input id="spotify_music_time" type="checkbox"> <span>Show elapsed/total time (e.g. [1:23 / 3:45])</span></label>
                     <label class="switch-row"><input id="spotify_music_progress" type="checkbox"> <span>Show music progress bar</span></label>
-                    <label class="field"><span>Progress style</span><select id="spotify_progress_style"><option value="bar">Bar</option><option value="dots">Dots</option><option value="percentage">Percentage</option></select></label>
+                    <label class="field"><span>Progress style</span><select id="spotify_progress_style"><option value="bar">Bar</option><option value="dots">Dots</option><option value="percentage">Percentage</option><option value="custom">Custom</option></select></label>
+                    <div id="progress_bar_custom_fields" class="form-grid compact-fields" hidden>
+                        <label class="field"><span>Filled character</span><input id="progress_bar_filled_char" type="text" maxlength="4" placeholder="█"></label>
+                        <label class="field"><span>Empty character</span><input id="progress_bar_empty_char" type="text" maxlength="4" placeholder="░"></label>
+                        <label class="field"><span>Bar length</span><input id="progress_bar_length" type="number" min="3" max="30" step="1"></label>
+                    </div>
                     <label class="switch-row"><input id="lyrics_enabled_setup" type="checkbox"> <span>Show lyrics in chatbox</span></label>
                     <p class="field-note">Free via <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a>, no account needed.</p>
                     <div class="form-grid compact-fields">
@@ -653,6 +658,11 @@
                     <label class="field"><span>Mute indicator text</span><input id="mute_indicator_text" type="text" maxlength="60"></label>
                     <div class="button-row wrap">
                         <button class="secondary" type="button" data-integration-action="save_mute_indicator">Save mute indicator</button>
+                    </div>
+                    <label class="switch-row"><input id="speaking_indicator_enabled" type="checkbox"> <span>Show a talking indicator in the chatbox</span></label>
+                    <label class="field"><span>Talking indicator text</span><input id="speaking_indicator_text" type="text" maxlength="60"></label>
+                    <div class="button-row wrap">
+                        <button class="secondary" type="button" data-integration-action="save_speaking_indicator">Save talking indicator</button>
                     </div>
                     <h4>Gesture Reactions</h4>
                     <p class="field-note">Fire a temporary chatbox message when an avatar OSC parameter hits a value - e.g. GestureLeft = 4 for a wave.</p>
@@ -1106,6 +1116,19 @@
             <button class="icon-button" data-vrchat-preview-close type="button" aria-label="Close preview">x</button>
         </div>
         <div id="vrchat_preview_body" class="vrchat-preview-body"></div>
+    </div>
+</dialog>
+
+<dialog id="confirm_dialog" class="setup-dialog confirm-dialog">
+    <div class="wizard">
+        <div class="wizard-head">
+            <h3>Confirm</h3>
+        </div>
+        <p id="confirm_dialog_message"></p>
+        <div class="button-row wrap">
+            <button class="secondary" type="button" data-confirm-cancel>Cancel</button>
+            <button type="button" data-confirm-ok>Confirm</button>
+        </div>
     </div>
 </dialog>
 

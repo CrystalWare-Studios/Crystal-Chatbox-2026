@@ -1324,6 +1324,14 @@ details.panel:not([open]) > summary {
     width: min(560px, calc(100vw - 28px));
 }
 
+.confirm-dialog {
+    width: min(360px, calc(100vw - 28px));
+}
+
+.confirm-dialog .wizard-head {
+    margin-bottom: 4px;
+}
+
 .vrchat-preview-body {
     display: grid;
     gap: 12px;
