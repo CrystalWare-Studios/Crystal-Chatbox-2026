@@ -1037,7 +1037,7 @@ def get_current_preview(advance_page=False):
                 progress_line = f"{progress_percent}%"
 
     lyrics_line = ""
-    if SETTINGS.get("show_lyrics", False) and sstate.get("song_text"):
+    if SETTINGS.get("lyrics_enabled", False) and sstate.get("song_text"):
         lyric_text = lyrics_service.get_current_lyric_line(sstate.get("song_pos", 0))
         if lyric_text:
             lyric_text = chatbox_frames.truncate_line(lyric_text, SETTINGS.get("lyrics_max_length", 60))
@@ -1166,7 +1166,7 @@ def get_current_preview(advance_page=False):
         layout = list(layout) + ["afk"]
     if SETTINGS.get("show_vrchat_live", False) and "vrchat_live" not in layout:
         layout = list(layout) + ["vrchat_live"]
-    if SETTINGS.get("show_lyrics", False) and "lyrics" not in layout:
+    if SETTINGS.get("lyrics_enabled", False) and "lyrics" not in layout:
         layout = list(layout) + ["lyrics"]
     if SETTINGS.get("show_vr_battery", False) and "vr_battery" not in layout:
         layout = list(layout) + ["vr_battery"]
@@ -1354,7 +1354,13 @@ def get_current_preview(advance_page=False):
                     window = _get_marquee_window(remainder, inner_width, should_advance, content_key=f"role:{slot_key}")
                     if should_advance:
                         advanced_lines.add(slot_key)
-                    return (prefix + window).center(w)
+                    if prefix:
+                        # Pad the scrolling remainder to its own fixed width instead of
+                        # centering prefix+window together - otherwise a short window
+                        # (text that hasn't grown long enough to scroll yet) drags the
+                        # "fixed" emoji away from its anchored position.
+                        return (prefix + window.ljust(inner_width))[:w]
+                    return window.center(w)
                 return chatbox_frames.truncate_line(line, w).center(w)
 
             result = chatbox_frames.apply_frame(
@@ -1637,7 +1643,7 @@ def _log_empty_preview_once():
 
 
 def _current_lyric_line():
-    if not SETTINGS.get("show_lyrics", False):
+    if not SETTINGS.get("lyrics_enabled", False):
         return ""
     sstate = spotify.get_spotify_state()
     if not sstate.get("song_text"):
@@ -1671,9 +1677,33 @@ def start_vrc_updater():
 
         while True:
             try:
-                time.sleep(1)
+                # Sleep in small increments, rechecking lyrics on each one, so a
+                # newly-active line gets picked up within a fraction of a second
+                # instead of waiting for this loop's per-second tick. Everything
+                # else below still only runs once per ~1s, unchanged.
+                for _ in range(5):
+                    time.sleep(0.2)
+                    if (
+                        SETTINGS.get("lyrics_enabled", False)
+                        and chatbox_visible
+                        and not auto_send_paused
+                        and not _scroll_is_active()
+                    ):
+                        lyrics_interval = max(2, int(SETTINGS.get("lyrics_update_interval", 2)))
+                        if time.time() - last_lyrics_send_time >= lyrics_interval:
+                            current_lyric = _current_lyric_line()
+                            if current_lyric and current_lyric != last_sent_lyric:
+                                try:
+                                    preview_msg = get_current_preview(advance_page=False)
+                                except Exception as e:
+                                    preview_msg = ""
+                                    log_error("Preview generation failed during lyrics refresh", e)
+                                if preview_msg and send_to_vrchat(preview_msg):
+                                    last_lyrics_send_time = time.time()
+                                    last_sent_lyric = current_lyric
+
                 _send_heart_rate_osc_params()
-                
+
                 current_quest_ip = SETTINGS.get("quest_ip", "")
                 if current_quest_ip != last_quest_ip:
                     print(f"[Auto-Reconnect] Quest or Desktop IP changed from {last_quest_ip} to {current_quest_ip}")
@@ -1773,9 +1803,14 @@ def start_vrc_updater():
                             log_error("Preview generation failed - this cycle's chatbox update was skipped", e)
 
                         if chatbox_visible and not auto_send_paused and preview_msg:
-                            send_to_vrchat(preview_msg)
-                            last_lyrics_send_time = time.time()
-                            last_sent_lyric = _current_lyric_line()
+                            if time.time() - last_lyrics_send_time >= 1.5:
+                                send_to_vrchat(preview_msg)
+                                last_lyrics_send_time = time.time()
+                                last_sent_lyric = _current_lyric_line()
+                            # else: a lyrics update just went out a moment ago - skip this
+                            # rotation tick's send rather than stack two sends closer
+                            # together than VRChat's own chatbox rate limit allows. The
+                            # next rotation cycle picks it back up.
                         elif chatbox_visible:
                             _log_empty_preview_once()
                             try:
@@ -1787,24 +1822,6 @@ def start_vrc_updater():
                                 client.send_message("/chatbox/visible", 0)
                             except:
                                 pass
-                elif (
-                    SETTINGS.get("show_lyrics", False)
-                    and chatbox_visible
-                    and not auto_send_paused
-                    and not _scroll_is_active()
-                ):
-                    lyrics_interval = max(2, int(SETTINGS.get("lyrics_update_interval", 2)))
-                    if time.time() - last_lyrics_send_time >= lyrics_interval:
-                        current_lyric = _current_lyric_line()
-                        if current_lyric and current_lyric != last_sent_lyric:
-                            try:
-                                preview_msg = get_current_preview(advance_page=False)
-                            except Exception as e:
-                                preview_msg = ""
-                                log_error("Preview generation failed during lyrics refresh", e)
-                            if preview_msg and send_to_vrchat(preview_msg):
-                                last_lyrics_send_time = time.time()
-                                last_sent_lyric = current_lyric
 
             except Exception as e:
                 log_error("VRC Updater error", e)
@@ -1899,6 +1916,7 @@ def create_app():
             "dashboard.html",
             platform="quest" if IS_ANDROID else "desktop",
             is_android=IS_ANDROID,
+            windows_media_available=spotify.WINDOWS_MEDIA_AVAILABLE,
             spotify_source=spotify.get_spotify_state().get("source", "spotify_api"),
             quest_ip=SETTINGS.get("quest_ip",""),
             quest_port=SETTINGS.get("quest_port",9000),
@@ -3565,8 +3583,10 @@ def create_app():
     def save_now_playing_method():
         data = request.get_json(force=True)
         method = str(data.get("now_playing_method", "") or "").strip()
-        if method not in ("lastfm", "spotify_api", "discord"):
+        if method not in ("lastfm", "spotify_api", "discord", "windows_media"):
             return jsonify({"ok": False, "error": "Invalid now playing method."}), 400
+        if method == "windows_media" and not spotify.WINDOWS_MEDIA_AVAILABLE:
+            return jsonify({"ok": False, "error": "Windows Media isn't available on this platform."}), 400
         SETTINGS["now_playing_method"] = method
         _persist_settings(label="now_playing_method")
         return jsonify({"ok": True}), 200

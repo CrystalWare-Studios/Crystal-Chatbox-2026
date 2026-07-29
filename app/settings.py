@@ -23,7 +23,8 @@ os.makedirs(DATA_DIR, exist_ok=True)
 SETTINGS_FILE = os.path.join(DATA_DIR, "settings.json")
 BACKUP_DIR = os.path.join(DATA_DIR, "backups")
 settings_lock = threading.Lock()
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
+_MIGRATION_IS_WINDOWS = sys.platform == "win32" and "ANDROID_ARGUMENT" not in os.environ
 
 SENSITIVE_KEYS = {
     "spotify_client_secret",
@@ -120,7 +121,6 @@ DEFAULTS = {
     "song_emoji": "🎶",
     "song_icon_enabled": True,
     "lyrics_enabled": False,
-    "show_lyrics": False,
     "lyrics_emoji": "🎤",
     "lyrics_icon_enabled": True,
     "lyrics_update_interval": 2,
@@ -167,7 +167,6 @@ DEFAULTS = {
     "chatbox_frame": "none",
     "custom_frames": {},
     "chatbox_frame_emoji": "✨",
-    "chatbox_frame_style": "none",
     "chatbox_frame_wrap": False,
     "chatbox_template_enabled": False,
     "chatbox_template_preset": "classic",
@@ -315,7 +314,7 @@ DEFAULTS = {
     "osc_reactions_port": 9001,
     "app_window": {"width": 1200, "height": 820, "x": None, "y": None},
     "notifications_enabled": True,
-    "diagnostics_opt_in": False,
+    "diagnostics_opt_in": True,
 }
 
 
@@ -487,7 +486,16 @@ def migrate_settings(data):
     migrated["spotify_client_id"] = str(migrated.get("spotify_client_id", ""))[:255]
     migrated["spotify_client_secret"] = str(migrated.get("spotify_client_secret", ""))[:255]
     migrated["lastfm_username"] = str(migrated.get("lastfm_username", ""))[:255]
-    migrated["now_playing_method"] = migrated.get("now_playing_method") if migrated.get("now_playing_method") in ("", "lastfm", "spotify_api", "discord") else ""
+    npm = migrated.get("now_playing_method")
+    if npm not in ("", "lastfm", "spotify_api", "discord", "windows_media"):
+        npm = ""
+    # Before schema 3, "spotify_api" silently meant Windows Media on Windows (no real
+    # Spotify Client ID/Secret OAuth was reachable there). Preserve that behavior for
+    # existing installs by rewriting it to the new explicit value; fresh/newer saves
+    # of "spotify_api" now mean the real OAuth flow on every platform.
+    if npm == "spotify_api" and _MIGRATION_IS_WINDOWS and int(data.get("schema_version") or 0) < 3:
+        npm = "windows_media"
+    migrated["now_playing_method"] = npm
     migrated["weather_update_interval"] = _coerce_int(migrated.get("weather_update_interval"), 600, 60, 86400)
     migrated["vrchat_live_log_dir"] = str(migrated.get("vrchat_live_log_dir", ""))[:500]
     migrated["vrchat_live_manual_location"] = str(migrated.get("vrchat_live_manual_location", ""))[:500]

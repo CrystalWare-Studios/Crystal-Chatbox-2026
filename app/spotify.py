@@ -34,6 +34,7 @@ LASTFM_API_KEY = "825b76dcc029242543303ecd848cf6c4"
 spotify_state = {
     "song_text": "",
     "song_pos": 0,
+    "song_pos_captured_at": 0.0,
     "song_dur": 0,
     "album_art": "",
     "status": "not_configured",
@@ -54,33 +55,42 @@ tracker_lock = threading.Lock()
 def _now_playing_method():
     method = SETTINGS.get("now_playing_method")
     if not method:
+        if WINDOWS_MEDIA_AVAILABLE:
+            return "windows_media"
         if IS_ANDROID:
-            method = "discord" if crystalware_cloud.is_logged_in() else "lastfm"
-        else:
-            method = "spotify_api"
-    if method == "spotify_api" and IS_ANDROID:
-        return "lastfm"
+            return "discord" if crystalware_cloud.is_logged_in() else "lastfm"
+        return "spotify_api"
     return method
 
 
-def _current_source():
-    method = _now_playing_method()
-    if method == "spotify_api" and WINDOWS_MEDIA_AVAILABLE:
-        return "windows_media"
-    return method
+_last_reported_pos = {"song_key": "", "pos": 0}
 
 
 def get_spotify_state():
     with spotify_lock:
         state = spotify_state.copy()
-    state["source"] = _current_source()
+    state["source"] = _now_playing_method()
+    estimated = _estimate_song_pos(state)
+    song_key = state.get("song_text", "")
+    with spotify_lock:
+        if _last_reported_pos["song_key"] != song_key:
+            _last_reported_pos["song_key"] = song_key
+        elif _last_reported_pos["pos"] - estimated <= 3:
+            # A fresh real poll can land a hair behind the extrapolated
+            # estimate (normal timing jitter) - never let the displayed
+            # position visibly tick backwards for that. A drop bigger than a
+            # few seconds is a real user seek/rewind, not jitter - let those
+            # through immediately instead of freezing the display.
+            estimated = max(estimated, _last_reported_pos["pos"])
+        _last_reported_pos["pos"] = estimated
+    state["song_pos"] = estimated
     return state
 
 
 def _configured():
     method = _now_playing_method()
-    if method == "spotify_api" and WINDOWS_MEDIA_AVAILABLE:
-        return True
+    if method == "windows_media":
+        return WINDOWS_MEDIA_AVAILABLE
     if method == "lastfm":
         return bool(SETTINGS.get("lastfm_username", "").strip())
     if method == "discord":
@@ -114,11 +124,36 @@ def _friendly_error(error):
 
 def _set_state(**updates):
     with spotify_lock:
+        if "song_pos" in updates:
+            updates = dict(updates)
+            updates["song_pos_captured_at"] = time.time()
         spotify_state.update(updates)
         spotify_state["configured"] = _configured()
         spotify_state["available"] = SPOTIFY_AVAILABLE
         if updates.get("last_error"):
             spotify_state["last_error_at"] = time.time()
+
+
+def _estimate_song_pos(state):
+    # song_pos is a snapshot from whenever the tracker last polled (every
+    # spotify_update_interval seconds, 2s by default) - reading it as-is means
+    # lyrics and the progress display can lag the real position by up to that
+    # whole interval. Extrapolate forward by the wall-clock time elapsed since
+    # that snapshot was taken, so reads between polls stay accurate.
+    pos = state.get("song_pos", 0) or 0
+    if not state.get("song_text"):
+        return pos
+    captured_at = state.get("song_pos_captured_at") or 0
+    if not captured_at:
+        return pos
+    elapsed = time.time() - captured_at
+    if elapsed <= 0:
+        return pos
+    estimated = pos + elapsed
+    duration = state.get("song_dur") or 0
+    if duration:
+        estimated = min(estimated, duration)
+    return int(estimated)
 
 
 def force_reinit():
@@ -128,9 +163,24 @@ def force_reinit():
     print("[Now Playing] Re-initialization requested.")
 
 
+_windows_media_manager = None
+
+
+async def _get_windows_media_manager():
+    global _windows_media_manager
+    if _windows_media_manager is None:
+        _windows_media_manager = await _MediaManager.request_async()
+    return _windows_media_manager
+
+
 async def _read_windows_media_session():
-    manager = await _MediaManager.request_async()
-    session = manager.get_current_session()
+    global _windows_media_manager
+    try:
+        manager = await _get_windows_media_manager()
+        session = manager.get_current_session()
+    except Exception:
+        _windows_media_manager = None
+        raise
     if session is None:
         return None
 
@@ -164,9 +214,12 @@ async def _read_windows_media_session():
     }
 
 
-def _read_windows_media_now_playing(interval):
+def _read_windows_media_now_playing(interval, loop=None):
     try:
-        result = asyncio.run(_read_windows_media_session())
+        if loop is not None:
+            result = loop.run_until_complete(_read_windows_media_session())
+        else:
+            result = asyncio.run(_read_windows_media_session())
         if result is None:
             _set_state(status="active", last_error="", song_text="", song_pos=0, song_dur=0, album_art="")
         else:
@@ -330,6 +383,7 @@ def init_spotify_web():
 
 def _update_playback(current):
     with spotify_lock:
+        spotify_state["song_pos_captured_at"] = time.time()
         if current and current.get("is_playing") and current.get("item"):
             item = current["item"]
             artists = ", ".join(artist.get("name", "") for artist in item.get("artists", []))
@@ -373,10 +427,27 @@ def _tracker_loop_platform(interval):
     logged_waiting = False
     consecutive_errors = 0
 
+    windows_media_loop = None
+    if WINDOWS_MEDIA_AVAILABLE:
+        try:
+            windows_media_loop = asyncio.new_event_loop()
+        except Exception as exc:
+            print(f"[Now Playing Tracker] Falling back to per-call event loops: {exc}")
+            windows_media_loop = None
+
+    last_method = None
     while True:
         method = _now_playing_method()
-        if method == "spotify_api" and WINDOWS_MEDIA_AVAILABLE:
-            _read_windows_media_now_playing(interval)
+        if method != last_method:
+            # Switching sources (e.g. Windows Media -> Spotify Client ID/Secret) - drop
+            # whatever the previous source last reported so stale song info doesn't
+            # linger on screen while the newly selected source connects.
+            last_method = method
+            sp = None
+            logged_waiting = False
+            _set_state(status="not_configured", last_error="", song_text="", song_pos=0, song_dur=0, album_art="")
+        if method == "windows_media" and WINDOWS_MEDIA_AVAILABLE:
+            _read_windows_media_now_playing(interval, windows_media_loop)
             continue
         if method in ("lastfm", "discord"):
             try:

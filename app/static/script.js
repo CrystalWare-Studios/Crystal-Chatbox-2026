@@ -20,7 +20,7 @@
         { key: "custom", label: "Custom Messages", setting: "show_custom", help: "Your rotating text lines." },
         { key: "vrchat_live", label: "VRChat Instance", setting: "show_vrchat_live", help: "Current world, player count, and join/leave events." },
         { key: "song", label: "Music", setting: "show_music", help: "Current Spotify song." },
-        { key: "lyrics", label: "Lyrics", setting: "show_lyrics", help: "Current line of lyrics, synced to playback when available." },
+        { key: "lyrics", label: "Lyrics", setting: "lyrics_enabled", help: "Current line of lyrics, synced to playback when available." },
         { key: "window", label: "Active Window", setting: "show_window", help: "Current app or game." },
         { key: "heartrate", label: "Heart Rate", setting: "show_heartrate", help: "BPM from your selected source." },
         { key: "weather", label: "Weather", setting: "show_weather", help: "Weather from your configured location." },
@@ -760,9 +760,6 @@
         if ($("lyrics_enabled_setup") && document.activeElement !== $("lyrics_enabled_setup")) {
             $("lyrics_enabled_setup").checked = !!settings.lyrics_enabled;
         }
-        if ($("lyrics_show_setup") && document.activeElement !== $("lyrics_show_setup")) {
-            $("lyrics_show_setup").checked = !!settings.show_lyrics;
-        }
         if ($("lyrics_update_interval_setup") && document.activeElement !== $("lyrics_update_interval_setup")) {
             $("lyrics_update_interval_setup").value = settings.lyrics_update_interval || 2;
         }
@@ -772,9 +769,6 @@
         const source = spotify.source || "spotify_api";
         if ($("spotify_windows_media_group")) {
             $("spotify_windows_media_group").style.display = source === "windows_media" ? "" : "none";
-        }
-        if ($("spotify_method_switch_group")) {
-            $("spotify_method_switch_group").style.display = source === "windows_media" ? "none" : "";
         }
         if ($("spotify_lastfm_group")) {
             $("spotify_lastfm_group").style.display = source === "lastfm" ? "" : "none";
@@ -786,7 +780,7 @@
             $("spotify_client_setup_group").style.display = source === "spotify_api" ? "" : "none";
         }
         if ($("spotify_now_playing_method") && document.activeElement !== $("spotify_now_playing_method")) {
-            $("spotify_now_playing_method").value = source === "windows_media" ? "spotify_api" : source;
+            $("spotify_now_playing_method").value = source;
         }
         if ($("spotify_lastfm_username") && document.activeElement !== $("spotify_lastfm_username")) {
             $("spotify_lastfm_username").value = settings.lastfm_username || "";
@@ -861,7 +855,6 @@
             music_time_enabled: !!($("spotify_music_time") && $("spotify_music_time").checked),
             progress_style: $("spotify_progress_style") ? $("spotify_progress_style").value : "bar",
             lyrics_enabled: !!($("lyrics_enabled_setup") && $("lyrics_enabled_setup").checked),
-            show_lyrics: !!($("lyrics_show_setup") && $("lyrics_show_setup").checked),
             lyrics_update_interval: $("lyrics_update_interval_setup") ? Number($("lyrics_update_interval_setup").value || 2) : 2,
             lyrics_max_length: $("lyrics_max_length_setup") ? Number($("lyrics_max_length_setup").value || 60) : 60
         });
@@ -870,9 +863,6 @@
     }
 
     function renderHeartRateSetup(heartRate, settings) {
-        if ($("heart_rate_enabled_setup") && document.activeElement !== $("heart_rate_enabled_setup")) {
-            $("heart_rate_enabled_setup").checked = !!settings.heart_rate_enabled;
-        }
         if ($("heart_rate_source_setup") && document.activeElement !== $("heart_rate_source_setup")) {
             $("heart_rate_source_setup").value = settings.heart_rate_source || "pulsoid";
         }
@@ -889,7 +879,6 @@
         await api("/save_heart_rate_settings", {
             method: "POST",
             body: {
-                enabled: !!($("heart_rate_enabled_setup") && $("heart_rate_enabled_setup").checked),
                 source: $("heart_rate_source_setup") ? $("heart_rate_source_setup").value : "pulsoid",
                 pulsoid_token: $("heart_rate_pulsoid_token_setup") ? $("heart_rate_pulsoid_token_setup").value.trim() : "",
                 hyperate_id: $("heart_rate_hyperate_id_setup") ? $("heart_rate_hyperate_id_setup").value.trim() : "",

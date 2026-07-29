@@ -307,7 +307,7 @@ def apply_frame(text, style_id, max_total_length=DEFAULT_MAX_TOTAL_LENGTH, width
 def _fit_line(line, w, line_fit=None):
     if line_fit is not None:
         return line_fit(line, w)
-    return truncate_line(line, w).ljust(w)
+    return truncate_line(line, w).center(w)
 
 
 def apply_emoji_frame(lines, emoji, width, max_total_length=DEFAULT_MAX_TOTAL_LENGTH, line_fit=None):

@@ -22,14 +22,44 @@ _tracker_enabled = False
 
 
 def _split_song_text(song_text):
-    # Every now-playing source formats song_text as "{title} - {artist}",
-    # so this is the one place that needs to undo it. Imperfect for titles
-    # that themselves contain " - ", but that's an inherent ambiguity of
-    # working from the combined display string rather than a real bug.
-    title, sep, artist = str(song_text or "").partition(" - ")
+    # Every now-playing source formats song_text as "{title} - {artist}". Titles
+    # commonly contain their own " - " (e.g. "Song Name - Live", "Song Name -
+    # Radio Edit") while artist names essentially never do, so split on the
+    # LAST " - " rather than the first to avoid truncating the title into the
+    # artist field.
+    title, sep, artist = str(song_text or "").rpartition(" - ")
     if not sep:
         return "", ""
     return title.strip(), artist.strip()
+
+
+_LYRICS_NOISE_PATTERNS = [
+    re.compile(r"[\(\[][^)\]]*\b(feat\.?|featuring|ft\.?|with)\b[^)\]]*[\)\]]", re.IGNORECASE),
+    re.compile(
+        r"[\(\[][^)\]]*\b(remaster(?:ed)?|remix|re-?recorded|live|acoustic|"
+        r"radio edit|single version|album version|explicit|clean|deluxe|"
+        r"bonus track|mono|stereo|demo|edit|version)\b[^)\]]*[\)\]]",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\s-\s(?:\d{4}\s)?(?:remaster(?:ed)?|remix|live|acoustic|radio edit|"
+        r"single version|album version|mono version|stereo version)\b.*$",
+        re.IGNORECASE,
+    ),
+]
+
+
+def _clean_lyrics_query(text):
+    # LRCLIB's catalog is keyed on the plain song/artist name. Streaming
+    # sources often decorate titles with "(feat. X)", "- Remastered 2011",
+    # "(Live)" etc, which makes an otherwise-correct exact match miss and
+    # falls back to fuzzy search - which can silently return a different
+    # version of the song (wrong timings) rather than no match at all.
+    cleaned = str(text or "")
+    for pattern in _LYRICS_NOISE_PATTERNS:
+        cleaned = pattern.sub("", cleaned)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned).strip(" -")
+    return cleaned or str(text or "").strip()
 
 
 def _parse_lrc(lrc_text):
@@ -49,20 +79,42 @@ def _parse_lrc(lrc_text):
 
 
 def _fetch_lyrics(title, artist, duration):
-    params = {"track_name": title, "artist_name": artist}
-    if duration:
-        params["duration"] = int(duration)
+    cleaned_title = _clean_lyrics_query(title)
+    cleaned_artist = _clean_lyrics_query(artist)
+    attempts = [(title, artist)]
+    if (cleaned_title, cleaned_artist) != (title, artist) and cleaned_title and cleaned_artist:
+        attempts.append((cleaned_title, cleaned_artist))
+
+    # Exact match (with duration when known) first, in both the raw and
+    # noise-stripped forms - this is the only lookup that verifies it's the
+    # same recording, so it's the one that actually guarantees correct timing.
+    for attempt_title, attempt_artist in attempts:
+        params = {"track_name": attempt_title, "artist_name": attempt_artist}
+        if duration:
+            params["duration"] = int(duration)
+        try:
+            response = requests.get(LRCLIB_GET_URL, params=params, timeout=10)
+            if response.status_code == 200:
+                return response.json()
+        except Exception:
+            pass
+
+    # Fuzzy fallback - no duration verification built into this endpoint, so
+    # when we know the real duration, prefer whichever result's own duration
+    # is closest to it rather than blindly trusting the top text match (which
+    # can be a cover, remix, or live version with completely different timing).
+    search_title, search_artist = attempts[-1]
     try:
-        response = requests.get(LRCLIB_GET_URL, params=params, timeout=10)
-        if response.status_code == 200:
-            return response.json()
-    except Exception:
-        pass
-    try:
-        response = requests.get(LRCLIB_SEARCH_URL, params={"track_name": title, "artist_name": artist}, timeout=10)
+        response = requests.get(
+            LRCLIB_SEARCH_URL, params={"track_name": search_title, "artist_name": search_artist}, timeout=10
+        )
         if response.status_code == 200:
             results = response.json()
             if isinstance(results, list) and results:
+                if duration:
+                    closest = min(results, key=lambda r: abs(int(r.get("duration") or 0) - int(duration)))
+                    if abs(int(closest.get("duration") or 0) - int(duration)) <= 5:
+                        return closest
                 return results[0]
     except Exception:
         pass

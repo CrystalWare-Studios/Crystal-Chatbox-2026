@@ -375,8 +375,7 @@
 
         <section id="section_presets" class="section">
             <div class="notice-panel">
-                <strong>New here? You can skip presets.</strong>
-                For everyday use, just edit your rotating lines in the <strong>Chatbox</strong> tab. Presets are optional saved bundles &mdash; a message plus its formatting and which parts are on &mdash; for switching between whole looks (say, a streaming setup vs a casual one). Applying one replaces your current message, speed, formatting, and enabled parts.
+                <strong>Optional.</strong> Saved setups you can switch between (e.g. streaming vs. casual). For everyday use, just edit your lines in <strong>Chatbox</strong>.
             </div>
             <div class="section-toolbar">
                 <div>
@@ -470,18 +469,19 @@
             <div class="dashboard-grid three integration-tools">
                 <details class="panel collapsible" id="spotify_setup_panel">
                     <summary><h3>Spotify/Music Integration</h3></summary>
-                    <p class="field-note">Shows your current song in the chatbox.</p>
-                    <div id="spotify_windows_media_group">
-                        <p>Reading directly from Windows Media - no setup needed. Works with Spotify, YouTube, or any other player.</p>
-                    </div>
+                    <p class="field-note">Shows your current song in the chatbox. Pick one source below - only that method's setup steps will show.</p>
                     <div id="spotify_method_switch_group">
                         <label class="field"><span>Now Playing source</span>
                             <select id="spotify_now_playing_method">
+                                {% if windows_media_available %}<option value="windows_media">Windows Media (automatic, recommended)</option>{% endif %}
                                 <option value="discord">Discord (easiest - no new account)</option>
                                 <option value="lastfm">Last.fm</option>
-                                {% if not is_android %}<option value="spotify_api">Spotify (Client ID/Secret, advanced)</option>{% endif %}
+                                <option value="spotify_api">Spotify Client ID/Secret (advanced)</option>
                             </select>
                         </label>
+                    </div>
+                    <div id="spotify_windows_media_group">
+                        <p>Reading directly from Windows Media - no setup needed. Works with Spotify, YouTube, or any other player.</p>
                     </div>
                     <div id="spotify_discord_group">
                         <p><strong>Easiest option.</strong> Two steps, no new account:</p>
@@ -504,7 +504,6 @@
                         </div>
                         <p class="field-note">This panel updates automatically once something you're scrobbling starts playing.</p>
                     </div>
-                    {% if not is_android %}
                     <div id="spotify_client_setup_group">
                         <p>Create a free app at <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a>, add the Redirect URI shown below to it, then paste your Client ID and Client Secret here and click Connect Spotify.</p>
                         <label class="field"><span>Redirect URI to add in your Spotify app</span><input id="spotify_redirect_uri_display" type="text" readonly></label>
@@ -515,19 +514,16 @@
                             <button id="spotify_save_connect" type="button">Connect Spotify</button>
                         </div>
                     </div>
-                    {% endif %}
                     <label class="switch-row"><input id="spotify_show_music" type="checkbox"> <span>Show music in chatbox</span></label>
                     <label class="switch-row"><input id="spotify_music_time" type="checkbox"> <span>Show elapsed/total time (e.g. [1:23 / 3:45])</span></label>
                     <label class="switch-row"><input id="spotify_music_progress" type="checkbox"> <span>Show music progress bar</span></label>
                     <label class="field"><span>Progress style</span><select id="spotify_progress_style"><option value="bar">Bar</option><option value="dots">Dots</option><option value="percentage">Percentage</option></select></label>
-                    <p class="field-note">Lyrics: shows the current line for whatever's playing, using the free <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a> database - no account or API key needed. Synced lyrics advance automatically as the song plays; unsynced lyrics show as one block that scrolls if Scroll Behavior is on for Lyrics.</p>
-                    <label class="switch-row"><input id="lyrics_enabled_setup" type="checkbox"> <span>Look up lyrics for the current song</span></label>
-                    <label class="switch-row"><input id="lyrics_show_setup" type="checkbox"> <span>Show lyrics in chatbox</span></label>
+                    <label class="switch-row"><input id="lyrics_enabled_setup" type="checkbox"> <span>Show lyrics in chatbox</span></label>
+                    <p class="field-note">Free via <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a>, no account needed.</p>
                     <div class="form-grid compact-fields">
                         <label class="field"><span>Lyrics update every seconds</span><input id="lyrics_update_interval_setup" type="number" min="2" max="30" step="1"></label>
                         <label class="field"><span>Max lyric line length</span><input id="lyrics_max_length_setup" type="number" min="20" max="140" step="5"></label>
                     </div>
-                    <p class="field-note">Updates the chatbox as soon as the lyric line changes, separately from your normal message rotation - but never faster than every 2 seconds, to stay safely under VRChat's own chatbox rate limit. Longer lines get cut off at the max length instead of pushing other message parts out.</p>
                     <div class="button-row wrap">
                         <button id="spotify_save_display" class="secondary" type="button">Save music display</button>
                     </div>
@@ -535,7 +531,7 @@
                 </details>
                 <details class="panel collapsible" id="heart_rate_setup_panel">
                     <summary><h3>Heart Rate Setup</h3></summary>
-                    <label class="switch-row"><input id="heart_rate_enabled_setup" type="checkbox"> <span>Show heart rate in chatbox</span></label>
+                    <p class="field-note">Turn Heart Rate on or off from the card above. This panel is just for configuring the source.</p>
                     <label class="field"><span>Source</span><select id="heart_rate_source_setup"><option value="pulsoid">Pulsoid</option><option value="hyperate">HypeRate</option><option value="custom">Custom API</option></select></label>
                     <label class="field"><span>Pulsoid access token</span><input id="heart_rate_pulsoid_token_setup" type="password" autocomplete="off" placeholder="Enter token or leave blank to keep saved token"></label>
                     <label class="field"><span>HypeRate session ID</span><input id="heart_rate_hyperate_id_setup" type="password" autocomplete="off" placeholder="Enter session ID or leave blank to keep saved ID"></label>
@@ -574,8 +570,8 @@
                         <div><dt>Detail</dt><dd id="vr_battery_detail">{% if is_android %}Turn this on to read the Quest headset battery.{% else %}Turn this on to poll SteamVR for battery levels.{% endif %}</dd></div>
                     </dl>
                     <div id="vr_battery_devices" class="mini-log"></div>
+                    <p class="field-note">Turn this on or off from the card above.</p>
                     <div class="button-row wrap">
-                        <button class="secondary" type="button" data-integration-action="toggle_vr_battery">Enable/disable</button>
                         <button class="secondary" type="button" data-integration-action="refresh_vr_battery">Refresh now</button>
                     </div>
                     <div class="form-grid compact-fields">
@@ -610,8 +606,8 @@
                         <div><dt>Status</dt><dd id="volume_status">Disabled</dd></div>
                         <div><dt>Detail</dt><dd id="volume_detail">{% if is_android %}Turn this on to read the Quest media volume.{% else %}Turn this on to poll the system output volume.{% endif %}</dd></div>
                     </dl>
+                    <p class="field-note">Turn this on or off from the card above.</p>
                     <div class="button-row wrap">
-                        <button class="secondary" type="button" data-integration-action="toggle_volume">Enable/disable</button>
                         <button class="secondary" type="button" data-integration-action="refresh_volume">Refresh now</button>
                     </div>
                     <div class="form-grid compact-fields">
@@ -629,8 +625,8 @@
                         <div><dt>Status</dt><dd id="device_storage_status">Disabled</dd></div>
                         <div><dt>Detail</dt><dd id="device_storage_detail">Turn this on to read the Quest headset's free storage.</dd></div>
                     </dl>
+                    <p class="field-note">Turn this on or off from the card above.</p>
                     <div class="button-row wrap">
-                        <button class="secondary" type="button" data-integration-action="toggle_device_status">Enable/disable</button>
                         <button class="secondary" type="button" data-integration-action="refresh_device_status">Refresh now</button>
                     </div>
                     <div class="form-grid compact-fields">
@@ -891,7 +887,7 @@
                             <div><dt>Account</dt><dd id="vrcx_account_status">Unknown</dd></div>
                         </dl>
                         <div class="form-grid compact-fields">
-                            <label class="field"><span>Username</span><input id="vrcx_username" type="text" autocomplete="username"></label>
+                            <label class="field"><span>Username or email</span><input id="vrcx_username" type="text" autocomplete="username" placeholder="VRChat username or account email"></label>
                             <label class="field"><span>Password</span><input id="vrcx_password" type="password" autocomplete="current-password"></label>
                         </div>
                         <div class="button-row wrap">
