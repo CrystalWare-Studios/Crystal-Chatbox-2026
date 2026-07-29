@@ -9,7 +9,7 @@ source.include_exts = py,png,jpg,jpeg,gif,html,css,js,json,txt,ttf,woff,woff2
 version = 5.1.2
 icon.filename = %(source.dir)s/icon.png
 
-requirements = python3,flask,werkzeug==2.0.3,jinja2==3.1.6,markupsafe==3.0.3,itsdangerous==2.2.0,click==8.4.2,python-osc,pytz,requests==2.34.2,urllib3==2.7.0,charset-normalizer==3.4.9,idna==3.18,certifi==2026.6.17,packaging,plyer,websocket-client
+requirements = python3,flask,werkzeug==2.0.3,jinja2==3.1.6,markupsafe==3.0.3,itsdangerous==2.2.0,click==8.4.2,python-osc,pytz,requests==2.34.2,urllib3==2.7.0,charset-normalizer==3.4.9,idna==3.18,certifi==2026.6.17,packaging,plyer,websocket-client,zeroconf,ifaddr
 
 orientation = landscape
 fullscreen = 0
@@ -18,7 +18,7 @@ p4a.bootstrap = webview
 
 p4a.branch = v2024.01.21
 
-android.permissions = INTERNET,ACCESS_NETWORK_STATE,ACCESS_WIFI_STATE,CHANGE_WIFI_STATE,WAKE_LOCK,FOREGROUND_SERVICE,REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+android.permissions = INTERNET,ACCESS_NETWORK_STATE,ACCESS_WIFI_STATE,CHANGE_WIFI_STATE,CHANGE_WIFI_MULTICAST_STATE,WAKE_LOCK,FOREGROUND_SERVICE,REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
 
 android.api = 33
 android.minapi = 26
