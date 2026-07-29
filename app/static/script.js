@@ -3336,7 +3336,7 @@
         [
             "custom_frame_name", "custom_frame_top_left", "custom_frame_top_right",
             "custom_frame_bottom_left", "custom_frame_bottom_right", "custom_frame_horizontal",
-            "custom_frame_vertical", "custom_frame_emoji"
+            "custom_frame_vertical", "custom_frame_emoji", "custom_frame_top_line", "custom_frame_bottom_line"
         ].forEach((id) => {
             const node = $(id);
             if (node) node.addEventListener("input", scheduleCustomFramePreview);
@@ -3354,11 +3354,13 @@
         const edges = $("custom_frame_edges_field");
         const vertical = $("custom_frame_vertical_field");
         const emojiField = $("custom_frame_emoji_field");
+        const bannerField = $("custom_frame_banner_field");
         const padding = $("custom_frame_padding_field");
-        if (corners) corners.style.display = mode === "emoji" ? "none" : "";
+        if (corners) corners.style.display = (mode === "emoji" || mode === "banner") ? "none" : "";
         if (edges) edges.style.display = (mode === "box" || mode === "minimal_top" || mode === "minimal_both") ? "" : "none";
         if (vertical) vertical.style.display = mode === "box" ? "" : "none";
         if (emojiField) emojiField.style.display = mode === "emoji" ? "" : "none";
+        if (bannerField) bannerField.style.display = mode === "banner" ? "" : "none";
         if (padding) padding.style.display = mode === "emoji" ? "none" : "";
     }
 
@@ -3373,7 +3375,9 @@
             horizontal: $("custom_frame_horizontal") ? $("custom_frame_horizontal").value : "",
             vertical: $("custom_frame_vertical") ? $("custom_frame_vertical").value : "",
             padding: $("custom_frame_padding") ? $("custom_frame_padding").checked : true,
-            emoji: $("custom_frame_emoji") ? $("custom_frame_emoji").value.trim() : ""
+            emoji: $("custom_frame_emoji") ? $("custom_frame_emoji").value.trim() : "",
+            top_line: $("custom_frame_top_line") ? $("custom_frame_top_line").value : "",
+            bottom_line: $("custom_frame_bottom_line") ? $("custom_frame_bottom_line").value : ""
         };
     }
 
@@ -3422,7 +3426,7 @@
         customFrameState.editingId = "";
         if ($("custom_frame_name")) $("custom_frame_name").value = "";
         if ($("custom_frame_mode")) $("custom_frame_mode").value = "box";
-        ["custom_frame_top_left", "custom_frame_top_right", "custom_frame_bottom_left", "custom_frame_bottom_right", "custom_frame_horizontal", "custom_frame_vertical", "custom_frame_emoji"].forEach((id) => {
+        ["custom_frame_top_left", "custom_frame_top_right", "custom_frame_bottom_left", "custom_frame_bottom_right", "custom_frame_horizontal", "custom_frame_vertical", "custom_frame_emoji", "custom_frame_top_line", "custom_frame_bottom_line"].forEach((id) => {
             if ($(id)) $(id).value = "";
         });
         if ($("custom_frame_padding")) $("custom_frame_padding").checked = true;
@@ -3442,6 +3446,8 @@
         if ($("custom_frame_vertical")) $("custom_frame_vertical").value = definition.vertical || "";
         if ($("custom_frame_padding")) $("custom_frame_padding").checked = definition.padding !== false;
         if ($("custom_frame_emoji")) $("custom_frame_emoji").value = definition.emoji || "";
+        if ($("custom_frame_top_line")) $("custom_frame_top_line").value = definition.top_line || "";
+        if ($("custom_frame_bottom_line")) $("custom_frame_bottom_line").value = definition.bottom_line || "";
         updateCustomFrameFieldVisibility();
         refreshCustomFramePreview();
     }

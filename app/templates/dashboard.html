@@ -751,6 +751,7 @@
                             <option value="minimal_top">Line above only</option>
                             <option value="minimal_both">Line above and below</option>
                             <option value="emoji">Emoji on each end of every line</option>
+                            <option value="banner">Custom banner (type the whole top/bottom line yourself)</option>
                         </select>
                     </label>
                     <div id="custom_frame_corners_field" class="form-grid compact-fields">
@@ -762,6 +763,10 @@
                     <div id="custom_frame_edges_field" class="form-grid compact-fields">
                         <label class="field"><span>Horizontal edge</span><input id="custom_frame_horizontal" type="text" maxlength="6" placeholder="-"></label>
                         <label class="field" id="custom_frame_vertical_field"><span>Vertical edge</span><input id="custom_frame_vertical" type="text" maxlength="6" placeholder="|"></label>
+                    </div>
+                    <div id="custom_frame_banner_field" class="form-grid compact-fields" style="display:none;">
+                        <label class="field"><span>Top line</span><input id="custom_frame_top_line" type="text" maxlength="60" placeholder="╭── ⋅ ⋅ ── ✩ ── ⋅ ⋅ ──╮"></label>
+                        <label class="field"><span>Bottom line (optional)</span><input id="custom_frame_bottom_line" type="text" maxlength="60" placeholder="╰── ⋅ ⋅ ── ✩ ── ⋅ ⋅ ──╯"></label>
                     </div>
                     <label class="field" id="custom_frame_emoji_field" style="display:none;">
                         <span>Emoji</span>
