@@ -1,0 +1,27 @@
+# Build artifacts
+__pycache__/
+*.pyc
+dist/
+build/
+*.exe
+platforms/quest/build/
+platforms/quest/bin/
+platforms/quest/.buildozer/
+platforms/quest/.gradle/
+platforms/quest/*.apk
+platforms/quest/local.properties
+*.keystore
+*.jks
+
+# OS metadata
+.DS_Store
+._*
+.AppleDouble/
+Thumbs.db
+desktop.ini
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
