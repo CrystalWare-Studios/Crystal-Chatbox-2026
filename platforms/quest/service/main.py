@@ -41,6 +41,22 @@ _app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _app_root not in sys.path:
     sys.path.insert(0, _app_root)
 
+# The Activity's main.py already acquires a CPU wakelock, but that process
+# is not the one sending OSC and can itself get backgrounded/deprioritized
+# while this service keeps running. Acquire both locks directly in this
+# process too: the wakelock as a second line of defense, and - critically -
+# the WiFi lock, which nothing else acquires anywhere, so Android has been
+# free to throttle the WiFi radio during Doze/App Standby the whole time.
+# That drops outgoing OSC packets silently while the app itself keeps
+# running with no error to show for it, which matches "OSC randomly turns
+# off and back on" far better than anything CPU-side.
+try:
+    import android_power
+    android_power.acquire_wakelock()
+    android_power.acquire_wifi_lock()
+except Exception as e:
+    print(f"[Crystal Chatbox Service] Android power setup failed: {e}")
+
 from routes import app as flask_app
 
 

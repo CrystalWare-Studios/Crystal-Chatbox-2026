@@ -1629,6 +1629,10 @@
                 if (checked !== !!getSettings().show_weather) {
                     await api("/toggle_weather", { method: "POST" });
                 }
+            } else if (setting === "afk_enabled") {
+                if (checked !== !!getSettings().afk_enabled) {
+                    await api("/toggle_afk", { method: "POST" });
+                }
             } else {
                 await saveSettings({ [setting]: checked });
             }
@@ -1661,6 +1665,8 @@
             await saveSettings({ show_heartrate: false, heart_rate_enabled: false });
         } else if (setting === "show_weather") {
             await api("/toggle_weather", { method: "POST" });
+        } else if (setting === "afk_enabled") {
+            await api("/toggle_afk", { method: "POST" });
         } else {
             await saveSettings({ [setting]: false });
         }

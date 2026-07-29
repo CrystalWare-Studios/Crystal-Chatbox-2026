@@ -48,6 +48,7 @@ def _run_android():
     try:
         import android_power
         android_power.acquire_wakelock()
+        android_power.acquire_wifi_lock()
         android_power.request_battery_optimization_exemption()
     except Exception as e:
         print(f"[Crystal Chatbox] Android power setup failed: {e}")

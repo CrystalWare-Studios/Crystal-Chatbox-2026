@@ -3,6 +3,7 @@ import os
 IS_ANDROID = "ANDROID_ARGUMENT" in os.environ
 
 _wakelock = None
+_wifi_lock = None
 
 
 def acquire_wakelock():
@@ -33,6 +34,39 @@ def acquire_wakelock():
         print("[AndroidPower] Partial wakelock acquired")
     except Exception as e:
         print(f"[AndroidPower] Failed to acquire wakelock: {e}")
+
+
+def acquire_wifi_lock():
+    # A CPU wakelock alone does not stop Android from throttling the WiFi
+    # radio during Doze/App Standby - and OSC goes out over UDP/WiFi, so a
+    # throttled radio silently drops chatbox updates while the app process
+    # itself keeps running with nothing to report as an error. This is the
+    # separate lock that actually keeps WiFi at full power. No-op outside
+    # Android.
+    global _wifi_lock
+    if not IS_ANDROID or _wifi_lock is not None:
+        return
+    try:
+        from jnius import autoclass
+
+        ActivityThread = autoclass("android.app.ActivityThread")
+        Context = autoclass("android.content.Context")
+        WifiManager = autoclass("android.net.wifi.WifiManager")
+        context = ActivityThread.currentApplication()
+        if context is None:
+            return
+        wifi_manager = context.getSystemService(Context.WIFI_SERVICE)
+        if wifi_manager is None:
+            return
+        wifi_lock = wifi_manager.createWifiLock(
+            WifiManager.WIFI_MODE_FULL_HIGH_PERF, "CrystalChatbox:OSC"
+        )
+        wifi_lock.setReferenceCounted(False)
+        wifi_lock.acquire()
+        _wifi_lock = wifi_lock
+        print("[AndroidPower] WiFi high-performance lock acquired")
+    except Exception as e:
+        print(f"[AndroidPower] Failed to acquire WiFi lock: {e}")
 
 
 def request_battery_optimization_exemption():
