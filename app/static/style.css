@@ -396,6 +396,13 @@ a {
     color: #e35d5d;
 }
 
+.account-patreon-status {
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--text-muted, #9aa6b4);
+    line-height: 1.4;
+}
+
 .account-info-note {
     width: 100%;
     background: var(--surface-2);

@@ -161,6 +161,29 @@
             });
         }
 
+        const donorAnonToggle = $("donor_leaderboard_anonymous_toggle");
+        if (donorAnonToggle) {
+            donorAnonToggle.addEventListener("change", async () => {
+                const anonymous = donorAnonToggle.checked;
+                try {
+                    await api("/account/patreon-leaderboard-visibility", { method: "POST", body: { anonymous } });
+                    toast(anonymous ? "You're now hidden on the donor leaderboard." : "Your name is now visible on the donor leaderboard.", "success");
+                    refreshDonorLeaderboard();
+                } catch (error) {
+                    donorAnonToggle.checked = !anonymous;
+                    toast(error.message, "error");
+                }
+            });
+        }
+
+        const patreonBtn = $("account_patreon_btn");
+        if (patreonBtn) {
+            patreonBtn.addEventListener("click", () => {
+                if (menu) menu.style.display = "none";
+                window.location.href = "/account/patreon/connect";
+            });
+        }
+
         if (loginBtn) {
             loginBtn.addEventListener("click", () => {
                 window.location.href = "/account/login";
@@ -214,6 +237,10 @@
         }
     }
 
+    function formatDonorAmount(cents) {
+        return `$${((cents || 0) / 100).toFixed(2)}`;
+    }
+
     async function refreshAccountState() {
         const loginBtn = $("account_login_btn");
         const chip = $("account_chip");
@@ -224,6 +251,11 @@
             const username = $("account_username");
             const anonRow = $("leaderboard_anonymous_row");
             const anonToggle = $("leaderboard_anonymous_toggle");
+            const patreonBtn = $("account_patreon_btn");
+            const patreonStatus = $("account_patreon_status");
+            const donorAnonRow = $("donor_leaderboard_anonymous_row");
+            const donorAnonToggle = $("donor_leaderboard_anonymous_toggle");
+            const donorConnectNote = $("donor_leaderboard_connect_note");
             if (data.logged_in) {
                 loginBtn.style.display = "none";
                 chip.style.display = "flex";
@@ -238,12 +270,33 @@
                 }
                 if (anonRow) anonRow.style.display = "flex";
                 if (anonToggle && document.activeElement !== anonToggle) anonToggle.checked = !!data.leaderboard_anonymous;
+
+                if (data.patreon_connected) {
+                    if (patreonBtn) patreonBtn.style.display = "none";
+                    if (patreonStatus) {
+                        patreonStatus.style.display = "block";
+                        const pledge = data.pledge_cents > 0 ? `${formatDonorAmount(data.pledge_cents)}/mo` : "no active pledge";
+                        patreonStatus.textContent = `Patreon connected - ${pledge} - ${formatDonorAmount(data.lifetime_cents)} lifetime`;
+                    }
+                    if (donorAnonRow) donorAnonRow.style.display = "flex";
+                    if (donorConnectNote) donorConnectNote.style.display = "none";
+                    if (donorAnonToggle && document.activeElement !== donorAnonToggle) {
+                        donorAnonToggle.checked = !!data.donor_leaderboard_anonymous;
+                    }
+                } else {
+                    if (patreonBtn) patreonBtn.style.display = "";
+                    if (patreonStatus) patreonStatus.style.display = "none";
+                    if (donorAnonRow) donorAnonRow.style.display = "none";
+                    if (donorConnectNote) donorConnectNote.style.display = "block";
+                }
             } else {
                 loginBtn.style.display = "";
                 chip.style.display = "none";
                 const menu = $("account_menu");
                 if (menu) menu.style.display = "none";
                 if (anonRow) anonRow.style.display = "none";
+                if (donorAnonRow) donorAnonRow.style.display = "none";
+                if (donorConnectNote) donorConnectNote.style.display = "block";
             }
         } catch (error) {
             // Account state is non-critical; ignore silently.
@@ -460,6 +513,7 @@
         }
         if (next === "leaderboard") {
             refreshLeaderboard();
+            refreshDonorLeaderboard();
         }
         if (next === "vrchat") {
             refreshVrchatFriends();
@@ -495,6 +549,30 @@
             `).join("");
         } catch (error) {
             list.innerHTML = `<div class="empty-state">Could not load the leaderboard.</div>`;
+        }
+    }
+
+    async function refreshDonorLeaderboard() {
+        const list = $("donor_leaderboard_list");
+        if (!list) return;
+        list.textContent = "Loading...";
+        try {
+            const data = await api("/donor-leaderboard");
+            const entries = data.entries || [];
+            if (!entries.length) {
+                list.innerHTML = `<div class="empty-state">No donors on the board yet. Connect Patreon from the account menu to be the first!</div>`;
+                return;
+            }
+            list.innerHTML = entries.map((entry, index) => `
+                <div class="item">
+                    <div class="item-title">
+                        <span>#${index + 1} ${entry.discord_avatar ? `<img class="account-avatar" src="${escapeHtml(entry.discord_avatar)}" alt="">` : ""} ${escapeHtml(entry.discord_username || "Unknown")}</span>
+                        <span>${formatDonorAmount(entry.lifetime_cents || 0)}</span>
+                    </div>
+                </div>
+            `).join("");
+        } catch (error) {
+            list.innerHTML = `<div class="empty-state">Could not load the donor leaderboard.</div>`;
         }
     }
 

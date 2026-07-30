@@ -66,6 +66,8 @@
                     <div id="account_menu" class="account-menu" style="display:none;">
                         <button id="account_sync_btn" type="button">Save</button>
                         <button id="account_load_btn" type="button">Load from account</button>
+                        <button id="account_patreon_btn" type="button">Connect Patreon</button>
+                        <span id="account_patreon_status" class="account-patreon-status" style="display:none;"></span>
                         <button id="account_logout_btn" class="danger" type="button">Log out</button>
                     </div>
                 </div>
@@ -877,6 +879,22 @@
                         <span>Hide my name on the leaderboard (shows as "Anonymous" to other users)</span>
                     </label>
                     <div id="leaderboard_list" class="item-list compact-list">Loading...</div>
+                </article>
+                <article class="panel span-2">
+                    <div class="panel-head">
+                        <div>
+                            <h3>Donor Leaderboard</h3>
+                            <p>Everyone supporting Crystal Chatbox on Patreon, ranked by total lifetime support.</p>
+                        </div>
+                    </div>
+                    <p id="donor_leaderboard_connect_note" class="field-note" style="display:none;">
+                        Log in with Discord (top-right), then use <strong>Connect Patreon</strong> in the account menu to join the board.
+                    </p>
+                    <label class="switch-row" id="donor_leaderboard_anonymous_row" style="display:none;">
+                        <input id="donor_leaderboard_anonymous_toggle" type="checkbox">
+                        <span>Hide my name on the donor leaderboard (shows as "Anonymous" to other users)</span>
+                    </label>
+                    <div id="donor_leaderboard_list" class="item-list compact-list">Loading...</div>
                 </article>
             </div>
         </section>
