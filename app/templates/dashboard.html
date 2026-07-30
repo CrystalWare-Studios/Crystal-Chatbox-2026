@@ -39,6 +39,7 @@
             <button class="nav-item" data-section="logs" type="button">Logs</button>
             <button class="nav-item" data-section="settings" type="button">Settings</button>
             <button class="nav-item" data-section="leaderboard" type="button">Leaderboard</button>
+            <button class="nav-item" data-section="patreon" type="button">Patreon Perks</button>
             <button class="nav-item" data-section="vrchat" type="button">VRChat</button>
             <button class="nav-item" data-section="help" type="button">Help</button>
         </nav>
@@ -895,6 +896,41 @@
                         <span>Hide my name on the donor leaderboard (shows as "Anonymous" to other users)</span>
                     </label>
                     <div id="donor_leaderboard_list" class="item-list compact-list">Loading...</div>
+                </article>
+            </div>
+        </section>
+
+        <section id="section_patreon" class="section">
+            <div class="dashboard-grid">
+                <article class="panel span-2">
+                    <div class="panel-head">
+                        <div>
+                            <h3>Patreon Perks</h3>
+                            <p>Supporter-exclusive customization for Basic, Ultra, and Extreme Supporter tiers.</p>
+                        </div>
+                    </div>
+                    <p id="patreon_perks_locked_note" class="field-note" style="display:none;">
+                        These perks unlock once you're an active Patreon supporter. Log in with Discord (top-right), then use <strong>Connect Patreon</strong> in the account menu.
+                    </p>
+                    <div id="patreon_perks_fields" style="display:none;">
+                        <div class="form-grid compact-fields">
+                            <label class="field"><span>Accent color</span><input id="patreon_button_color" type="color" value="#43b39f"></label>
+                            <label class="field"><span>Background image URL</span><input id="patreon_custom_background" type="text" placeholder="https://..."></label>
+                        </div>
+                        <div class="button-row wrap">
+                            <button id="patreon_save_styling" type="button">Save app styling</button>
+                            <button id="patreon_reset_styling" class="secondary" type="button">Reset to default</button>
+                        </div>
+                        <h4>Leaderboard name color</h4>
+                        <p class="field-note">Shown to everyone viewing the leaderboard - a small badge of support.</p>
+                        <div class="form-grid compact-fields">
+                            <label class="field"><span>Name color</span><input id="patreon_leaderboard_color" type="color" value="#43b39f"></label>
+                        </div>
+                        <div class="button-row wrap">
+                            <button id="patreon_save_leaderboard_color" type="button">Save leaderboard color</button>
+                            <button id="patreon_reset_leaderboard_color" class="secondary" type="button">Remove color</button>
+                        </div>
+                    </div>
                 </article>
             </div>
         </section>

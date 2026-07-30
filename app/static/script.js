@@ -11,6 +11,7 @@
         logs: "Logs",
         settings: "Settings",
         leaderboard: "Leaderboard",
+        patreon: "Patreon Perks",
         vrchat: "VRChat",
         help: "Help"
     };
@@ -237,6 +238,73 @@
         }
     }
 
+    function bindPatreonPerks() {
+        onClick("patreon_save_styling", async () => {
+            const color = $("patreon_button_color") ? $("patreon_button_color").value : "";
+            const background = $("patreon_custom_background") ? $("patreon_custom_background").value.trim() : "";
+            try {
+                await api("/save_premium_styling", { method: "POST", body: { custom_button_color: color, custom_background: background } });
+                toast("Styling saved.", "success");
+                loadState({ silent: true });
+            } catch (error) {
+                toast(error.message, "error");
+            }
+        });
+        onClick("patreon_reset_styling", async () => {
+            if ($("patreon_button_color")) $("patreon_button_color").value = "#43b39f";
+            if ($("patreon_custom_background")) $("patreon_custom_background").value = "";
+            try {
+                await api("/save_premium_styling", { method: "POST", body: { custom_button_color: "", custom_background: "" } });
+                toast("Styling reset.", "success");
+                loadState({ silent: true });
+            } catch (error) {
+                toast(error.message, "error");
+            }
+        });
+        onClick("patreon_save_leaderboard_color", async () => {
+            const color = $("patreon_leaderboard_color") ? $("patreon_leaderboard_color").value : "";
+            try {
+                await api("/account/leaderboard-style", { method: "POST", body: { color } });
+                toast("Leaderboard color saved.", "success");
+                refreshDonorLeaderboard();
+                refreshLeaderboard();
+            } catch (error) {
+                toast(error.message, "error");
+            }
+        });
+        onClick("patreon_reset_leaderboard_color", async () => {
+            if ($("patreon_leaderboard_color")) $("patreon_leaderboard_color").value = "#43b39f";
+            try {
+                await api("/account/leaderboard-style", { method: "POST", body: { color: "" } });
+                toast("Leaderboard color removed.", "success");
+                refreshDonorLeaderboard();
+                refreshLeaderboard();
+            } catch (error) {
+                toast(error.message, "error");
+            }
+        });
+    }
+
+    function refreshPatreonPerksPanel(accountState, settings) {
+        const lockedNote = $("patreon_perks_locked_note");
+        const fields = $("patreon_perks_fields");
+        if (!lockedNote || !fields) return;
+        const unlocked = !!(accountState && accountState.is_active_patron);
+        lockedNote.style.display = unlocked ? "none" : "block";
+        fields.style.display = unlocked ? "block" : "none";
+        if (!unlocked) return;
+        const settingsData = settings || getSettings();
+        if ($("patreon_button_color") && document.activeElement !== $("patreon_button_color")) {
+            $("patreon_button_color").value = settingsData.custom_button_color || "#43b39f";
+        }
+        if ($("patreon_custom_background") && document.activeElement !== $("patreon_custom_background")) {
+            $("patreon_custom_background").value = settingsData.custom_background || "";
+        }
+        if ($("patreon_leaderboard_color") && document.activeElement !== $("patreon_leaderboard_color")) {
+            $("patreon_leaderboard_color").value = accountState.leaderboard_color || "#43b39f";
+        }
+    }
+
     function formatDonorAmount(cents) {
         return `$${((cents || 0) / 100).toFixed(2)}`;
     }
@@ -298,6 +366,7 @@
                 if (donorAnonRow) donorAnonRow.style.display = "none";
                 if (donorConnectNote) donorConnectNote.style.display = "block";
             }
+            refreshPatreonPerksPanel(data);
         } catch (error) {
             // Account state is non-critical; ignore silently.
         }
@@ -373,6 +442,7 @@
         bindSettings();
         bindSetupWizard();
         bindAccountIndicator();
+        bindPatreonPerks();
         bindUpdatePanel();
         bindVrchatExplorer();
         bindExternalLinks();
@@ -515,6 +585,9 @@
             refreshLeaderboard();
             refreshDonorLeaderboard();
         }
+        if (next === "patreon") {
+            refreshAccountState();
+        }
         if (next === "vrchat") {
             refreshVrchatFriends();
             refreshVrchatFavorites();
@@ -526,6 +599,10 @@
         const minutes = Math.floor((totalSeconds % 3600) / 60);
         if (hours <= 0) return `${minutes}m`;
         return `${hours}h ${minutes}m`;
+    }
+
+    function leaderboardNameStyle(color) {
+        return color && /^#[0-9a-fA-F]{6}$/.test(color) ? ` style="color:${color}"` : "";
     }
 
     async function refreshLeaderboard() {
@@ -542,7 +619,7 @@
             list.innerHTML = entries.map((entry, index) => `
                 <div class="item">
                     <div class="item-title">
-                        <span>#${index + 1} ${entry.discord_avatar ? `<img class="account-avatar" src="${escapeHtml(entry.discord_avatar)}" alt="">` : ""} ${escapeHtml(entry.discord_username || "Unknown")}</span>
+                        <span>#${index + 1} ${entry.discord_avatar ? `<img class="account-avatar" src="${escapeHtml(entry.discord_avatar)}" alt="">` : ""} <span${leaderboardNameStyle(entry.leaderboard_color)}>${escapeHtml(entry.discord_username || "Unknown")}</span></span>
                         <span>${formatLeaderboardTime(entry.total_seconds || 0)}</span>
                     </div>
                 </div>
@@ -566,7 +643,7 @@
             list.innerHTML = entries.map((entry, index) => `
                 <div class="item">
                     <div class="item-title">
-                        <span>#${index + 1} ${entry.discord_avatar ? `<img class="account-avatar" src="${escapeHtml(entry.discord_avatar)}" alt="">` : ""} ${escapeHtml(entry.discord_username || "Unknown")}</span>
+                        <span>#${index + 1} ${entry.discord_avatar ? `<img class="account-avatar" src="${escapeHtml(entry.discord_avatar)}" alt="">` : ""} <span${leaderboardNameStyle(entry.leaderboard_color)}>${escapeHtml(entry.discord_username || "Unknown")}</span></span>
                         <span>${formatDonorAmount(entry.lifetime_cents || 0)}</span>
                     </div>
                 </div>
@@ -3824,6 +3901,19 @@
     function applyBodySettings(settings) {
         document.body.classList.toggle("light", settings.theme === "light");
         document.body.classList.toggle("compact", !!settings.compact_mode);
+        if (settings.custom_button_color) {
+            document.documentElement.style.setProperty("--accent", settings.custom_button_color);
+        } else {
+            document.documentElement.style.removeProperty("--accent");
+        }
+        if (settings.custom_background) {
+            document.body.style.backgroundImage = `url("${settings.custom_background.replace(/"/g, '\\"')}")`;
+            document.body.style.backgroundSize = "cover";
+            document.body.style.backgroundPosition = "center";
+            document.body.style.backgroundAttachment = "fixed";
+        } else {
+            document.body.style.backgroundImage = "";
+        }
     }
 
     function getSettings() {

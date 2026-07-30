@@ -399,7 +399,7 @@ a {
 .account-patreon-status {
     padding: 8px 10px;
     font-size: 12px;
-    color: var(--text-muted, #9aa6b4);
+    color: var(--muted);
     line-height: 1.4;
 }
 
