@@ -2502,6 +2502,11 @@
         const rules = (getSettings().reaction_rules || []).slice();
         rules.push({ enabled: true, name: address.split("/").pop(), address, trigger_value: value, message });
         await api("/osc-reactions/rules", { method: "POST", body: { rules } });
+        // Without this, adding a second rule before anything else refreshes
+        // state.app.settings reads reaction_rules from this same stale
+        // pre-save snapshot again - the rule just added here would silently
+        // vanish, overwritten by a save built from before it existed.
+        await loadState({ silent: true });
         setValue("reaction_address_input", "");
         setValue("reaction_value_input", "");
         setValue("reaction_message_input", "");
