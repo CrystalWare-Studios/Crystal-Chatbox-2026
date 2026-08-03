@@ -82,6 +82,7 @@ platforms/quest/*.py
 !platforms/quest/android_power.py
 platforms/quest/templates/
 platforms/quest/static/
+platforms/quest/CHANGELOG.md
 platforms/quest/build/
 platforms/quest/bin/
 platforms/quest/Builds/

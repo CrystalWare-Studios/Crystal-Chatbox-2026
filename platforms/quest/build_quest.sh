@@ -11,6 +11,7 @@ cp "$APP_DIR"/*.py "$ROOT_DIR/"
 rm -rf "$ROOT_DIR/templates" "$ROOT_DIR/static"
 cp -r "$APP_DIR/templates" "$ROOT_DIR/templates"
 cp -r "$APP_DIR/static" "$ROOT_DIR/static"
+cp "$ROOT_DIR/../../CHANGELOG.md" "$ROOT_DIR/CHANGELOG.md"
 
 echo "Building Quest APK ($BUILD_TYPE) via Docker/buildozer ..."
 cd "$ROOT_DIR"

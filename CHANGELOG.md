@@ -1,5 +1,10 @@
 # Changelog
 
+## v6.0.1
+
+### Fixes
+- Fixed "CHANGELOG.md not found" error on Quest
+
 ## v6.0.0
 
 ### Patreon support
