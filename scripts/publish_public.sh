@@ -39,6 +39,11 @@ fi
 
 git --git-dir="$MIRROR_DIR" remote set-url origin "$REMOTE_URL" 2>/dev/null || \
     git --git-dir="$MIRROR_DIR" remote add origin "$REMOTE_URL"
+# `git clone --mirror` sets remote.origin.mirror=true, which makes git refuse
+# any push with explicit refspecs ("--mirror can't be combined with
+# refspecs") - this repo is being force-pushed as two separate refspecs
+# below, not as a true mirror push, so that flag has to go.
+git --git-dir="$MIRROR_DIR" config --unset-all remote.origin.mirror || true
 
 echo ""
 echo "Ready to force-push the scrubbed history to: $REMOTE_URL"
