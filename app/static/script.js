@@ -3,18 +3,15 @@
     const SECTIONS = {
         home: "Home",
         chatbox: "Chatbox",
-        presets: "Presets",
-        automations: "Automations",
-        integrations: "Integrations",
         appearance: "Appearance",
-        profiles: "Profiles",
-        logs: "Logs",
-        settings: "Settings",
-        leaderboard: "Leaderboard",
-        patreon: "Patreon Perks",
+        integrations: "Integrations",
         vrchat: "VRChat",
+        community: "Community",
+        account: "Account",
         help: "Help"
     };
+
+    const DEFAULT_SUBTABS = { chatbox: "compose", community: "leaderboard", account: "profiles" };
 
     const MESSAGE_PARTS = [
         { key: "time", label: "Time", setting: "show_time", help: "Current time." },
@@ -90,6 +87,7 @@
 
     const state = {
         app: null,
+        account: null,
         currentSection: localStorage.getItem("crystal.section") || "home",
         selectedPresetId: "",
         selectedAutomationId: "",
@@ -185,6 +183,26 @@
             });
         }
 
+        const patreonRefreshBtn = $("account_patreon_refresh_btn");
+        if (patreonRefreshBtn) {
+            patreonRefreshBtn.addEventListener("click", async () => {
+                patreonRefreshBtn.disabled = true;
+                patreonRefreshBtn.textContent = "Refreshing...";
+                try {
+                    await api("/account/patreon/refresh", { method: "POST" });
+                    toast("Patreon status refreshed.", "success");
+                    refreshAccountState();
+                    refreshDonorLeaderboard();
+                    refreshLeaderboard();
+                } catch (error) {
+                    toast(error.message, "error");
+                } finally {
+                    patreonRefreshBtn.disabled = false;
+                    patreonRefreshBtn.textContent = "Refresh Patreon status";
+                }
+            });
+        }
+
         if (loginBtn) {
             loginBtn.addEventListener("click", () => {
                 window.location.href = "/account/login";
@@ -239,12 +257,21 @@
     }
 
     function bindPatreonPerks() {
+        ["patreon_button_color", "patreon_leaderboard_color", "patreon_leaderboard_banner_color", "patreon_surface_color", "patreon_text_color"].forEach((id) => {
+            const el = $(id);
+            if (el) el.addEventListener("input", updatePatreonColorPreviews);
+        });
         onClick("patreon_save_styling", async () => {
             const color = $("patreon_button_color") ? $("patreon_button_color").value : "";
-            const background = $("patreon_custom_background") ? $("patreon_custom_background").value.trim() : "";
             try {
-                await api("/save_premium_styling", { method: "POST", body: { custom_button_color: color, custom_background: background } });
-                toast("Styling saved.", "success");
+                // Only custom_button_color in the body - save_premium_styling
+                // only touches keys that are actually present, so this can't
+                // clobber the background image saved from the Ultra section.
+                await api("/save_premium_styling", { method: "POST", body: { custom_button_color: color } });
+                toast("Accent color saved.", "success");
+                if (state.app && state.app.settings) {
+                    state.app.settings.custom_button_color = color;
+                }
                 loadState({ silent: true });
             } catch (error) {
                 toast(error.message, "error");
@@ -252,10 +279,70 @@
         });
         onClick("patreon_reset_styling", async () => {
             if ($("patreon_button_color")) $("patreon_button_color").value = "#43b39f";
+            updatePatreonColorPreviews();
+            try {
+                await api("/save_premium_styling", { method: "POST", body: { custom_button_color: "" } });
+                toast("Accent color reset.", "success");
+                if (state.app && state.app.settings) {
+                    state.app.settings.custom_button_color = "";
+                }
+                loadState({ silent: true });
+            } catch (error) {
+                toast(error.message, "error");
+            }
+        });
+        onClick("patreon_save_background", async () => {
+            const background = $("patreon_custom_background") ? $("patreon_custom_background").value.trim() : "";
+            try {
+                await api("/save_premium_styling", { method: "POST", body: { custom_background: background } });
+                toast("Background saved.", "success");
+                if (state.app && state.app.settings) {
+                    state.app.settings.custom_background = background;
+                }
+                loadState({ silent: true });
+            } catch (error) {
+                toast(error.message, "error");
+            }
+        });
+        onClick("patreon_reset_background", async () => {
             if ($("patreon_custom_background")) $("patreon_custom_background").value = "";
             try {
-                await api("/save_premium_styling", { method: "POST", body: { custom_button_color: "", custom_background: "" } });
-                toast("Styling reset.", "success");
+                await api("/save_premium_styling", { method: "POST", body: { custom_background: "" } });
+                toast("Background removed.", "success");
+                if (state.app && state.app.settings) {
+                    state.app.settings.custom_background = "";
+                }
+                loadState({ silent: true });
+            } catch (error) {
+                toast(error.message, "error");
+            }
+        });
+        onClick("patreon_save_theme", async () => {
+            const surface = $("patreon_surface_color") ? $("patreon_surface_color").value : "";
+            const text = $("patreon_text_color") ? $("patreon_text_color").value : "";
+            try {
+                await api("/save_theme_styling", { method: "POST", body: { custom_surface_color: surface, custom_text_color: text } });
+                toast("Theme saved.", "success");
+                if (state.app && state.app.settings) {
+                    state.app.settings.custom_surface_color = surface;
+                    state.app.settings.custom_text_color = text;
+                }
+                loadState({ silent: true });
+            } catch (error) {
+                toast(error.message, "error");
+            }
+        });
+        onClick("patreon_reset_theme", async () => {
+            if ($("patreon_surface_color")) $("patreon_surface_color").value = "#111318";
+            if ($("patreon_text_color")) $("patreon_text_color").value = "#eef2f5";
+            updatePatreonColorPreviews();
+            try {
+                await api("/save_theme_styling", { method: "POST", body: { custom_surface_color: "", custom_text_color: "" } });
+                toast("Theme reset.", "success");
+                if (state.app && state.app.settings) {
+                    state.app.settings.custom_surface_color = "";
+                    state.app.settings.custom_text_color = "";
+                }
                 loadState({ silent: true });
             } catch (error) {
                 toast(error.message, "error");
@@ -266,6 +353,11 @@
             try {
                 await api("/account/leaderboard-style", { method: "POST", body: { color } });
                 toast("Leaderboard color saved.", "success");
+                // Same reasoning as patreon_save_styling above, but for
+                // state.account instead of state.app.settings - this save never
+                // otherwise touches it, so without this the picker would sit on
+                // the stale color until the next 20s refreshAccountState() poll.
+                if (state.account) state.account.leaderboard_color = color;
                 refreshDonorLeaderboard();
                 refreshLeaderboard();
             } catch (error) {
@@ -274,34 +366,119 @@
         });
         onClick("patreon_reset_leaderboard_color", async () => {
             if ($("patreon_leaderboard_color")) $("patreon_leaderboard_color").value = "#43b39f";
+            updatePatreonColorPreviews();
             try {
                 await api("/account/leaderboard-style", { method: "POST", body: { color: "" } });
                 toast("Leaderboard color removed.", "success");
+                if (state.account) state.account.leaderboard_color = "";
                 refreshDonorLeaderboard();
                 refreshLeaderboard();
             } catch (error) {
                 toast(error.message, "error");
             }
         });
+        onClick("patreon_save_leaderboard_banner", async () => {
+            const color = $("patreon_leaderboard_banner_color") ? $("patreon_leaderboard_banner_color").value : "";
+            try {
+                await api("/account/leaderboard-banner", { method: "POST", body: { color } });
+                toast("Leaderboard banner color saved.", "success");
+                if (state.account) state.account.leaderboard_banner_color = color;
+                refreshDonorLeaderboard();
+                refreshLeaderboard();
+            } catch (error) {
+                toast(error.message, "error");
+            }
+        });
+        onClick("patreon_reset_leaderboard_banner", async () => {
+            if ($("patreon_leaderboard_banner_color")) $("patreon_leaderboard_banner_color").value = "#43b39f";
+            updatePatreonColorPreviews();
+            try {
+                await api("/account/leaderboard-banner", { method: "POST", body: { color: "" } });
+                toast("Leaderboard banner removed.", "success");
+                if (state.account) state.account.leaderboard_banner_color = "";
+                refreshDonorLeaderboard();
+                refreshLeaderboard();
+            } catch (error) {
+                toast(error.message, "error");
+            }
+        });
+        onClick("patreon_perks_unlock_btn", () => {
+            window.location.href = (state.account && state.account.logged_in)
+                ? "/account/patreon/connect"
+                : "/account/login";
+        });
+    }
+
+    const PATREON_TIER_RANK = { "": 0, basic: 1, ultra: 2, extreme: 3 };
+
+    function setPatreonTierLock(prefix, unlocked) {
+        const overlay = $(`patreon_tier_${prefix}_lock`);
+        const fields = $(`patreon_tier_${prefix}_fields`);
+        if (!fields) return;
+        if (overlay) overlay.style.display = unlocked ? "none" : "flex";
+        fields.setAttribute("data-locked", unlocked ? "false" : "true");
     }
 
     function refreshPatreonPerksPanel(accountState, settings) {
-        const lockedNote = $("patreon_perks_locked_note");
-        const fields = $("patreon_perks_fields");
-        if (!lockedNote || !fields) return;
-        const unlocked = !!(accountState && accountState.is_active_patron);
-        lockedNote.style.display = unlocked ? "none" : "block";
-        fields.style.display = unlocked ? "block" : "none";
-        if (!unlocked) return;
+        if (!$("patreon_tier_basic_fields")) return;
+        const rank = PATREON_TIER_RANK[(accountState && accountState.patron_tier) || ""] || 0;
+        // Additive by design: Ultra Supporters see Basic unlocked too, Extreme
+        // sees everything - matches "each tier includes the ones below it".
+        setPatreonTierLock("basic", rank >= 1);
+        setPatreonTierLock("ultra", rank >= 2);
+        setPatreonTierLock("extreme", rank >= 3);
+
+        const unlockBtn = $("patreon_perks_unlock_btn");
+        if (unlockBtn) {
+            unlockBtn.textContent = (accountState && accountState.logged_in) ? "Connect Patreon" : "Log in with Discord";
+        }
+
         const settingsData = settings || getSettings();
         if ($("patreon_button_color") && document.activeElement !== $("patreon_button_color")) {
             $("patreon_button_color").value = settingsData.custom_button_color || "#43b39f";
         }
+        if ($("patreon_leaderboard_color") && document.activeElement !== $("patreon_leaderboard_color")) {
+            $("patreon_leaderboard_color").value = (accountState && accountState.leaderboard_color) || "#43b39f";
+        }
         if ($("patreon_custom_background") && document.activeElement !== $("patreon_custom_background")) {
             $("patreon_custom_background").value = settingsData.custom_background || "";
         }
-        if ($("patreon_leaderboard_color") && document.activeElement !== $("patreon_leaderboard_color")) {
-            $("patreon_leaderboard_color").value = accountState.leaderboard_color || "#43b39f";
+        if ($("patreon_leaderboard_banner_color") && document.activeElement !== $("patreon_leaderboard_banner_color")) {
+            $("patreon_leaderboard_banner_color").value = (accountState && accountState.leaderboard_banner_color) || "#43b39f";
+        }
+        if ($("patreon_surface_color") && document.activeElement !== $("patreon_surface_color")) {
+            $("patreon_surface_color").value = settingsData.custom_surface_color || "#111318";
+        }
+        if ($("patreon_text_color") && document.activeElement !== $("patreon_text_color")) {
+            $("patreon_text_color").value = settingsData.custom_text_color || "#eef2f5";
+        }
+        updatePatreonColorPreviews();
+    }
+
+    function updatePatreonColorPreviews() {
+        const buttonColor = $("patreon_button_color");
+        const buttonPreview = $("patreon_button_color_preview");
+        if (buttonColor && buttonPreview) {
+            buttonPreview.style.background = buttonColor.value;
+            buttonPreview.style.borderColor = buttonColor.value;
+            buttonPreview.style.color = "#fff";
+        }
+        const nameColor = $("patreon_leaderboard_color");
+        const namePreview = $("patreon_leaderboard_color_preview");
+        if (nameColor && namePreview) {
+            namePreview.style.color = nameColor.value;
+        }
+        const bannerColor = $("patreon_leaderboard_banner_color");
+        const bannerPreview = $("patreon_leaderboard_banner_color_preview");
+        if (bannerColor && bannerPreview) {
+            bannerPreview.setAttribute("style", leaderboardBannerCss(bannerColor.value) || "border-left:4px solid transparent;");
+        }
+        const surfaceColor = $("patreon_surface_color");
+        const textColor = $("patreon_text_color");
+        const themePreview = $("patreon_theme_preview");
+        if (themePreview && surfaceColor && textColor) {
+            themePreview.style.setProperty("--patreon-preview-bg", surfaceColor.value);
+            themePreview.style.setProperty("--patreon-preview-text", textColor.value);
         }
     }
 
@@ -315,12 +492,14 @@
         if (!loginBtn || !chip) return;
         try {
             const data = await api("/account/state");
+            state.account = data;
             const avatar = $("account_avatar");
             const username = $("account_username");
             const anonRow = $("leaderboard_anonymous_row");
             const anonToggle = $("leaderboard_anonymous_toggle");
             const patreonBtn = $("account_patreon_btn");
             const patreonStatus = $("account_patreon_status");
+            const patreonRefreshBtn = $("account_patreon_refresh_btn");
             const donorAnonRow = $("donor_leaderboard_anonymous_row");
             const donorAnonToggle = $("donor_leaderboard_anonymous_toggle");
             const donorConnectNote = $("donor_leaderboard_connect_note");
@@ -328,6 +507,8 @@
                 loginBtn.style.display = "none";
                 chip.style.display = "flex";
                 if (username) username.textContent = data.username || "Crystal account";
+                const supporterBadge = $("account_supporter_badge");
+                if (supporterBadge) supporterBadge.style.display = data.is_active_patron ? "" : "none";
                 if (avatar) {
                     if (data.avatar_url) {
                         avatar.src = data.avatar_url;
@@ -346,6 +527,7 @@
                         const pledge = data.pledge_cents > 0 ? `${formatDonorAmount(data.pledge_cents)}/mo` : "no active pledge";
                         patreonStatus.textContent = `Patreon connected - ${pledge} - ${formatDonorAmount(data.lifetime_cents)} lifetime`;
                     }
+                    if (patreonRefreshBtn) patreonRefreshBtn.style.display = "";
                     if (donorAnonRow) donorAnonRow.style.display = "flex";
                     if (donorConnectNote) donorConnectNote.style.display = "none";
                     if (donorAnonToggle && document.activeElement !== donorAnonToggle) {
@@ -354,6 +536,7 @@
                 } else {
                     if (patreonBtn) patreonBtn.style.display = "";
                     if (patreonStatus) patreonStatus.style.display = "none";
+                    if (patreonRefreshBtn) patreonRefreshBtn.style.display = "none";
                     if (donorAnonRow) donorAnonRow.style.display = "none";
                     if (donorConnectNote) donorConnectNote.style.display = "block";
                 }
@@ -369,6 +552,68 @@
             refreshPatreonPerksPanel(data);
         } catch (error) {
             // Account state is non-critical; ignore silently.
+        }
+    }
+
+    function bindChangelog() {
+        let loaded = false;
+        onClick("changelog_toggle_btn", async () => {
+            const body = $("changelog_body");
+            const btn = $("changelog_toggle_btn");
+            if (!body) return;
+            const showing = body.style.display !== "none";
+            if (showing) {
+                body.style.display = "none";
+                if (btn) btn.textContent = "What's new";
+                return;
+            }
+            body.style.display = "block";
+            if (btn) btn.textContent = "Hide what's new";
+            if (loaded) return;
+            try {
+                const data = await api("/app/changelog");
+                // Server escapes every line before applying its own markup -
+                // this innerHTML is safe HTML it built, not raw file content.
+                body.innerHTML = data.html || "<p>Nothing here yet.</p>";
+                loaded = true;
+            } catch (error) {
+                body.innerHTML = `<p class="field-note">Could not load the changelog: ${escapeHtml(error.message)}</p>`;
+            }
+        });
+    }
+
+    function bindWhatsNewDialog() {
+        const dialog = $("whats_new_dialog");
+        if (!dialog) return;
+        // Marking as seen lives in this handler, not a dialog "close"
+        // listener - verified in this app's WebView2 runtime that the
+        // native close event does not reliably fire on dialog.close(), so
+        // anything depending on it silently never marks the popup seen.
+        const closeDialog = () => {
+            if (typeof dialog.close === "function" && dialog.open) dialog.close();
+            const version = dialog.dataset.pendingVersion;
+            if (version) {
+                api("/app/changelog/seen", { method: "POST", body: { version } }).catch(() => {});
+                delete dialog.dataset.pendingVersion;
+            }
+        };
+        onClick("whats_new_close", closeDialog);
+        onClick("whats_new_dismiss", closeDialog);
+    }
+
+    async function checkWhatsNewPopup() {
+        try {
+            const data = await api("/app/changelog");
+            if (!data || !data.html || !data.version) return;
+            if (data.version === data.last_seen_version) return;
+            const dialog = $("whats_new_dialog");
+            const body = $("whats_new_body");
+            if (!dialog || !body) return;
+            body.innerHTML = data.html;
+            dialog.dataset.pendingVersion = data.version;
+            if (typeof dialog.showModal === "function" && !dialog.open) dialog.showModal();
+        } catch (error) {
+            // Never block startup on this - worst case, the popup just doesn't show.
         }
     }
 
@@ -431,6 +676,7 @@
 
     function init() {
         bindNavigation();
+        bindSubtabs();
         bindDashboard();
         bindChatbox();
         bindPresets();
@@ -444,6 +690,8 @@
         bindAccountIndicator();
         bindPatreonPerks();
         bindUpdatePanel();
+        bindChangelog();
+        bindWhatsNewDialog();
         bindVrchatExplorer();
         bindExternalLinks();
         showSection(state.currentSection);
@@ -451,6 +699,7 @@
         loadState({ showSetup: true });
         refreshAccountState();
         refreshUpdateState();
+        checkWhatsNewPopup();
         window.setInterval(() => loadState({ silent: true }), 7000);
         window.setInterval(refreshAccountState, 20000);
     }
@@ -519,6 +768,7 @@
             const payload = await api("/app/state");
             state.app = payload;
             applyBodySettings(payload.settings || {});
+            refreshPatreonPerksPanel(state.account, payload.settings || {});
             renderTopbar(payload);
             renderHome(payload);
             renderChatbox(payload);
@@ -564,6 +814,50 @@
         }
     }
 
+    function bindSubtabs() {
+        $$(".subtab-nav").forEach((nav) => {
+            const group = nav.dataset.subtabGroup;
+            $$(".subtab-item", nav).forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    activateSubtab(group, btn.dataset.subtab);
+                });
+            });
+            const saved = localStorage.getItem(`crystal.subtab.${group}`);
+            if (saved && saved !== DEFAULT_SUBTABS[group] && $$(".subtab-item", nav).some((b) => b.dataset.subtab === saved)) {
+                activateSubtab(group, saved);
+            }
+        });
+    }
+
+    function activateSubtab(group, target) {
+        const nav = document.querySelector(`.subtab-nav[data-subtab-group="${group}"]`);
+        if (!nav) return;
+        const panelsRoot = nav.parentElement;
+        $$(".subtab-item", nav).forEach((b) => b.classList.toggle("active", b.dataset.subtab === target));
+        $$(".subtab-panel", panelsRoot).forEach((panel) => {
+            panel.classList.toggle("active", panel.dataset.subtabPanel === target);
+        });
+        localStorage.setItem(`crystal.subtab.${group}`, target);
+        runSubtabSideEffects(group, target);
+    }
+
+    function currentSubtab(group) {
+        return localStorage.getItem(`crystal.subtab.${group}`) || DEFAULT_SUBTABS[group];
+    }
+
+    function runSubtabSideEffects(group, target) {
+        if (group === "account" && target === "logs") {
+            refreshLogs();
+        }
+        if (group === "community" && target === "leaderboard") {
+            refreshLeaderboard();
+            refreshDonorLeaderboard();
+        }
+        if (group === "community" && target === "patreon") {
+            refreshAccountState();
+        }
+    }
+
     function showSection(section) {
         const next = SECTIONS[section] ? section : "home";
         state.currentSection = next;
@@ -575,22 +869,15 @@
             sectionNode.classList.toggle("active", sectionNode.id === `section_${next}`);
         });
         setText("page_title", SECTIONS[next]);
-        if (next === "logs") {
-            refreshLogs();
-        }
         if (next === "appearance") {
             loadAppearanceOptions();
-        }
-        if (next === "leaderboard") {
-            refreshLeaderboard();
-            refreshDonorLeaderboard();
-        }
-        if (next === "patreon") {
-            refreshAccountState();
         }
         if (next === "vrchat") {
             refreshVrchatFriends();
             refreshVrchatFavorites();
+        }
+        if (DEFAULT_SUBTABS[next]) {
+            runSubtabSideEffects(next, currentSubtab(next));
         }
     }
 
@@ -605,6 +892,21 @@
         return color && /^#[0-9a-fA-F]{6}$/.test(color) ? ` style="color:${color}"` : "";
     }
 
+    function leaderboardBannerCss(color) {
+        if (!color || !/^#[0-9a-fA-F]{6}$/.test(color)) return "";
+        return `border-left:4px solid ${color};background:color-mix(in srgb, ${color} 16%, var(--surface-2));`;
+    }
+
+    function leaderboardBannerStyle(color) {
+        const css = leaderboardBannerCss(color);
+        return css ? ` style="${css}"` : "";
+    }
+
+    function supporterBadgeHtml(entry) {
+        const isSupporter = entry && (entry.is_active_patron !== undefined ? !!entry.is_active_patron : !!(entry.leaderboard_color || entry.leaderboard_banner_color));
+        return isSupporter ? ` <span class="supporter-badge" title="Active Patreon supporter">★</span>` : "";
+    }
+
     async function refreshLeaderboard() {
         const list = $("leaderboard_list");
         if (!list) return;
@@ -617,9 +919,9 @@
                 return;
             }
             list.innerHTML = entries.map((entry, index) => `
-                <div class="item">
+                <div class="item"${leaderboardBannerStyle(entry.leaderboard_banner_color)}>
                     <div class="item-title">
-                        <span>#${index + 1} ${entry.discord_avatar ? `<img class="account-avatar" src="${escapeHtml(entry.discord_avatar)}" alt="">` : ""} <span${leaderboardNameStyle(entry.leaderboard_color)}>${escapeHtml(entry.discord_username || "Unknown")}</span></span>
+                        <span>#${index + 1} ${entry.discord_avatar ? `<img class="account-avatar" src="${escapeHtml(entry.discord_avatar)}" alt="">` : ""} <span${leaderboardNameStyle(entry.leaderboard_color)}>${escapeHtml(entry.discord_username || "Unknown")}</span>${supporterBadgeHtml(entry)}</span>
                         <span>${formatLeaderboardTime(entry.total_seconds || 0)}</span>
                     </div>
                 </div>
@@ -641,9 +943,9 @@
                 return;
             }
             list.innerHTML = entries.map((entry, index) => `
-                <div class="item">
+                <div class="item"${leaderboardBannerStyle(entry.leaderboard_banner_color)}>
                     <div class="item-title">
-                        <span>#${index + 1} ${entry.discord_avatar ? `<img class="account-avatar" src="${escapeHtml(entry.discord_avatar)}" alt="">` : ""} <span${leaderboardNameStyle(entry.leaderboard_color)}>${escapeHtml(entry.discord_username || "Unknown")}</span></span>
+                        <span>#${index + 1} ${entry.discord_avatar ? `<img class="account-avatar" src="${escapeHtml(entry.discord_avatar)}" alt="">` : ""} <span${leaderboardNameStyle(entry.leaderboard_color)}>${escapeHtml(entry.discord_username || "Unknown")}</span>${supporterBadgeHtml(entry)}</span>
                         <span>${formatDonorAmount(entry.lifetime_cents || 0)}</span>
                     </div>
                 </div>
@@ -668,7 +970,7 @@
                 return;
             }
             container.innerHTML = results.slice(0, 8).map((item) => `
-                <button class="search-result" type="button" data-section="${escapeAttr(item.section)}">
+                <button class="search-result" type="button" data-section="${escapeAttr(item.target)}" data-subtab="${escapeAttr(item.subtab || "")}">
                     <strong>${escapeHtml(item.title || item.section)}</strong>
                     <span>${escapeHtml(item.description || item.keywords || "")}</span>
                 </button>
@@ -676,6 +978,7 @@
             $$(".search-result", container).forEach((button) => {
                 button.addEventListener("click", () => {
                     showSection(button.dataset.section);
+                    if (button.dataset.subtab) activateSubtab(button.dataset.section, button.dataset.subtab);
                     container.innerHTML = "";
                     $("global_search").value = "";
                 });
@@ -894,6 +1197,14 @@
         onClick("heart_rate_save_setup", saveHeartRateSettings);
         onClick("location_zip_save", saveLocationZip);
         onClick("weather_temp_unit_save", saveWeatherTempUnit);
+        if ($("clock_format")) {
+            $("clock_format").addEventListener("change", async (event) => {
+                await saveSettingsWithToast(
+                    { time_24h: event.target.value === "24" },
+                    event.target.value === "24" ? "Clock set to 24-hour." : "Clock set to 12-hour."
+                );
+            });
+        }
         const section = $("section_integrations");
         if (section) {
             section.addEventListener("click", async (event) => {
@@ -1763,7 +2074,8 @@
                 toast("Preset saved.", "success");
             }
             await loadState({ silent: true });
-            showSection("presets");
+            showSection("chatbox");
+            activateSubtab("chatbox", "presets");
         } catch (error) {
             toast(error.message, "error");
         }
@@ -3628,6 +3940,7 @@
                     <div class="item-title"><span>${escapeHtml(definition.name || "Custom")}</span></div>
                     <div class="item-actions">
                         <button class="secondary" type="button" data-custom-frame-edit="${escapeAttr(id)}">Edit</button>
+                        <button class="secondary" type="button" data-custom-frame-duplicate="${escapeAttr(id)}">Duplicate</button>
                         <button class="danger" type="button" data-custom-frame-delete="${escapeAttr(id)}">Delete</button>
                     </div>
                 </div>
@@ -3636,6 +3949,24 @@
                 button.addEventListener("click", () => {
                     const id = button.dataset.customFrameEdit;
                     if (frames[id]) loadCustomFrameIntoForm(id, frames[id]);
+                });
+            });
+            list.querySelectorAll("[data-custom-frame-duplicate]").forEach((button) => {
+                button.addEventListener("click", async () => {
+                    try {
+                        const id = button.dataset.customFrameDuplicate;
+                        const source = frames[id];
+                        if (!source) return;
+                        const clone = { ...source, name: `${source.name || "Custom"} (copy)` };
+                        const payload = await api("/custom_frames", { method: "POST", body: clone });
+                        loadCustomFrameIntoForm(payload.id, clone);
+                        state.framesLoaded = false;
+                        await loadAppearanceOptions();
+                        await refreshCustomFrames();
+                        toast("Frame duplicated.", "success");
+                    } catch (error) {
+                        toast(error.message || "Could not duplicate frame.", "error");
+                    }
                 });
             });
             list.querySelectorAll("[data-custom-frame-delete]").forEach((button) => {
@@ -3758,6 +4089,9 @@
     function hydrateSettings(settings) {
         if ($("weather_temp_unit") && document.activeElement !== $("weather_temp_unit")) {
             $("weather_temp_unit").value = settings.weather_temp_unit || "F";
+        }
+        if ($("clock_format") && document.activeElement !== $("clock_format")) {
+            $("clock_format").value = settings.time_24h ? "24" : "12";
         }
         setValue("setting_quest_ip", settings.quest_ip || "127.0.0.1");
         setValue("setting_quest_port", settings.quest_port || 9000);
@@ -3913,6 +4247,19 @@
             document.body.style.backgroundAttachment = "fixed";
         } else {
             document.body.style.backgroundImage = "";
+        }
+        // Extreme-tier full theme: the base background and text color, not
+        // per-panel surfaces - overriding every --surface-* shade too would
+        // flatten panels into the background with nothing to tell them apart.
+        if (settings.custom_surface_color) {
+            document.documentElement.style.setProperty("--bg", settings.custom_surface_color);
+        } else {
+            document.documentElement.style.removeProperty("--bg");
+        }
+        if (settings.custom_text_color) {
+            document.documentElement.style.setProperty("--text", settings.custom_text_color);
+        } else {
+            document.documentElement.style.removeProperty("--text");
         }
     }
 

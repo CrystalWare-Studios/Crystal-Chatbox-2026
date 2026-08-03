@@ -229,6 +229,32 @@ a {
     padding: 9px 10px;
 }
 
+/* Without this, a color input inherits the full-width text-input styling
+   above and renders as a long flat bar - nothing about it reads as "click
+   this to open a color picker". Sized and rounded like a swatch button
+   instead, so it looks like the clickable control it is. */
+.field input[type="color"] {
+    width: 48px;
+    height: 40px;
+    padding: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.field input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.field input[type="color"]::-webkit-color-swatch {
+    border: 1px solid var(--border);
+    border-radius: 50%;
+}
+
+.field input[type="color"]::-moz-color-swatch {
+    border: 1px solid var(--border);
+    border-radius: 50%;
+}
+
 .field textarea {
     resize: vertical;
     min-height: 96px;
@@ -359,6 +385,14 @@ a {
     vertical-align: middle;
 }
 
+.supporter-badge {
+    display: inline-block;
+    color: var(--gem);
+    font-size: 13px;
+    line-height: 1;
+    vertical-align: middle;
+}
+
 .account-menu {
     position: absolute;
     top: calc(100% + 8px);
@@ -403,6 +437,153 @@ a {
     line-height: 1.4;
 }
 
+.patreon-perks-wrap {
+    position: relative;
+}
+
+.patreon-perks-fields[data-locked="true"] {
+    opacity: 0.35;
+    filter: grayscale(0.7);
+    pointer-events: none;
+    user-select: none;
+}
+
+.patreon-perks-lock-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+    background: linear-gradient(180deg, rgba(17, 19, 24, 0.55), rgba(17, 19, 24, 0.72));
+    border-radius: 8px;
+}
+
+body.light .patreon-perks-lock-overlay {
+    background: linear-gradient(180deg, rgba(246, 247, 249, 0.65), rgba(246, 247, 249, 0.82));
+}
+
+.patreon-perks-lock-message {
+    max-width: 360px;
+    padding: 18px 22px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+}
+
+.patreon-perks-lock-message strong {
+    display: block;
+    font-size: 15px;
+    margin-bottom: 6px;
+    color: var(--text);
+}
+
+.patreon-perks-lock-message p {
+    margin: 0 0 12px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.button-row.centered {
+    justify-content: center;
+}
+
+/* An <a> that needs to sit in a button row and look like the buttons beside
+   it - external links can't be <button> because the external-link handler
+   reads the href. */
+.button-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 7px 13px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--surface-3);
+    color: var(--text);
+    font-weight: 600;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.button-link:hover {
+    background: var(--surface-hover);
+}
+
+.patreon-support-link {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.patreon-tier-header {
+    padding-bottom: 4px;
+}
+
+.patreon-tier-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 700;
+    border: 1px solid transparent;
+}
+
+.patreon-tier-badge.basic {
+    background: rgba(192, 132, 87, 0.16);
+    color: #c08457;
+    border-color: rgba(192, 132, 87, 0.35);
+}
+
+.patreon-tier-badge.ultra {
+    background: rgba(182, 192, 204, 0.16);
+    color: #b6c0cc;
+    border-color: rgba(182, 192, 204, 0.35);
+}
+
+.patreon-tier-badge.extreme {
+    background: rgba(217, 178, 92, 0.16);
+    color: #d9b25c;
+    border-color: rgba(217, 178, 92, 0.35);
+}
+
+.patreon-theme-preview {
+    flex: 1;
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--patreon-preview-bg, var(--bg));
+    color: var(--patreon-preview-text, var(--text));
+    font-weight: 600;
+    transition: background 0.1s ease, color 0.1s ease;
+}
+
+.patreon-color-preview-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 10px;
+}
+
+.patreon-preview-row {
+    padding: 8px 12px;
+    margin: 0;
+    transition: background 0.1s ease, border-color 0.1s ease;
+}
+
+.patreon-preview-btn {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-weight: 600;
+    cursor: default;
+    transition: background 0.1s ease, color 0.1s ease, border-color 0.1s ease;
+}
+
 .account-info-note {
     width: 100%;
     background: var(--surface-2);
@@ -440,6 +621,45 @@ a {
     display: block;
 }
 
+.subtab-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.subtab-item {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.subtab-item:hover {
+    background: var(--surface-2);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+.subtab-item.active {
+    background: var(--gem-soft);
+    color: var(--text);
+    border-color: var(--gem);
+}
+
+.subtab-panel {
+    display: none;
+}
+
+.subtab-panel.active {
+    display: block;
+}
+
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
@@ -447,6 +667,7 @@ a {
 }
 
 .section > .dashboard-grid + .dashboard-grid,
+.subtab-panel > .dashboard-grid + .dashboard-grid,
 .editor-layout + .dashboard-grid,
 .dashboard-grid + .manual-send-note,
 .manual-send-note + .editor-layout {
@@ -692,6 +913,58 @@ details.panel:not([open]) > summary {
 .status-list dd {
     margin: 0;
     overflow-wrap: anywhere;
+}
+
+.changelog-body {
+    margin-top: 10px;
+    padding: 12px 16px;
+    max-height: 360px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-2);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.changelog-body h3 {
+    margin: 14px 0 6px;
+    font-size: 15px;
+}
+
+.changelog-body h3:first-child {
+    margin-top: 0;
+}
+
+.changelog-body h4 {
+    margin: 12px 0 4px;
+    font-size: 13px;
+    color: var(--accent);
+}
+
+.changelog-body h5 {
+    margin: 10px 0 3px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+}
+
+.changelog-body ul {
+    margin: 0 0 8px;
+    padding-left: 20px;
+    color: var(--muted);
+}
+
+.changelog-body li {
+    margin: 2px 0;
+}
+
+.changelog-body hr {
+    margin: 14px 0;
+    border: none;
+    border-top: 1px solid var(--border);
 }
 
 .stack,

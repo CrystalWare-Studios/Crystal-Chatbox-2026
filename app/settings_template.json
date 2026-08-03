@@ -15,6 +15,7 @@
     "music_progress": false,
     "progress_style": "bar",
     "timezone": "local",
+    "time_24h": false,
     "layout_order": [
         "time",
         "custom",
@@ -42,8 +43,28 @@
     "song_emoji": "🎶",
     "window_emoji": "💻",
     "patreon_supporter": false,
+    "chatbox_frame": "custom_default",
+    "custom_frames": {
+        "custom_default": {
+            "name": "My Frame",
+            "mode": "box",
+            "top_left": "+",
+            "top_right": "+",
+            "bottom_left": "+",
+            "bottom_right": "+",
+            "horizontal": "-",
+            "vertical": "|",
+            "padding": true,
+            "emoji": "",
+            "top_line": "",
+            "bottom_line": ""
+        }
+    },
     "custom_background": "",
     "custom_button_color": "",
+    "custom_surface_color": "",
+    "custom_text_color": "",
+    "changelog_last_seen_version": "",
     "window_tracking_mode": "both",
     "show_heartrate": false,
     "heart_rate_enabled": false,

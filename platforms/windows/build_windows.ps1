@@ -36,7 +36,8 @@ $pyinstallerArgs = @(
     "--add-data", "$AppDir\templates;templates",
     "--add-data", "$AppDir\static;static",
     "--add-data", "$AppDir\settings_template.json;.",
-    "--add-data", "$RootDir\version.txt;."
+    "--add-data", "$RootDir\version.txt;.",
+    "--add-data", "$RepoRoot\CHANGELOG.md;."
 )
 
 if (Test-Path $OpenVrDll) {

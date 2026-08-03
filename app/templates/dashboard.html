@@ -31,16 +31,11 @@
         <nav id="main_nav" class="nav-list">
             <button class="nav-item active" data-section="home" type="button">Home</button>
             <button class="nav-item" data-section="chatbox" type="button">Chatbox</button>
-            <button class="nav-item" data-section="presets" type="button">Presets</button>
-            <button class="nav-item" data-section="automations" type="button">Automations</button>
-            <button class="nav-item" data-section="integrations" type="button">Integrations</button>
             <button class="nav-item" data-section="appearance" type="button">Appearance</button>
-            <button class="nav-item" data-section="profiles" type="button">Profiles</button>
-            <button class="nav-item" data-section="logs" type="button">Logs</button>
-            <button class="nav-item" data-section="settings" type="button">Settings</button>
-            <button class="nav-item" data-section="leaderboard" type="button">Leaderboard</button>
-            <button class="nav-item" data-section="patreon" type="button">Patreon Perks</button>
+            <button class="nav-item" data-section="integrations" type="button">Integrations</button>
             <button class="nav-item" data-section="vrchat" type="button">VRChat</button>
+            <button class="nav-item" data-section="community" type="button">Community</button>
+            <button class="nav-item" data-section="account" type="button">Account</button>
             <button class="nav-item" data-section="help" type="button">Help</button>
         </nav>
         <div class="sidebar-footer">
@@ -63,12 +58,14 @@
                     <button id="account_chip" class="account-chip" type="button" style="display:none;">
                         <img id="account_avatar" class="account-avatar" src="" alt="">
                         <span id="account_username" class="account-username"></span>
+                        <span id="account_supporter_badge" class="supporter-badge" title="Active Patreon supporter" style="display:none;">★</span>
                     </button>
                     <div id="account_menu" class="account-menu" style="display:none;">
                         <button id="account_sync_btn" type="button">Save</button>
                         <button id="account_load_btn" type="button">Load from account</button>
                         <button id="account_patreon_btn" type="button">Connect Patreon</button>
                         <span id="account_patreon_status" class="account-patreon-status" style="display:none;"></span>
+                        <button id="account_patreon_refresh_btn" type="button" style="display:none;">Refresh Patreon status</button>
                         <button id="account_logout_btn" class="danger" type="button">Log out</button>
                     </div>
                 </div>
@@ -139,6 +136,12 @@
         </section>
 
         <section id="section_chatbox" class="section">
+            <div class="subtab-nav" data-subtab-group="chatbox">
+                <button class="subtab-item active" data-subtab="compose" type="button">Compose</button>
+                <button class="subtab-item" data-subtab="presets" type="button">Presets</button>
+                <button class="subtab-item" data-subtab="automations" type="button">Automations</button>
+            </div>
+            <div class="subtab-panel active" data-subtab-panel="compose">
             <div class="notice-panel">
                 <strong>How the chatbox is built:</strong>
                 Crystal combines the enabled message parts below in order. Edit your normal text in Custom Messages and turn parts on or off in Message Parts{% if not is_android %}, including CPU/RAM/GPU output in System Stats{% endif %}.
@@ -374,9 +377,8 @@
                 </article>
                 {% endif %}
             </div>
-        </section>
-
-        <section id="section_presets" class="section">
+            </div>
+            <div class="subtab-panel" data-subtab-panel="presets">
             <div class="notice-panel">
                 <strong>Optional.</strong> Saved setups you can switch between (e.g. streaming vs. casual). For everyday use, just edit your lines in <strong>Chatbox</strong>.
             </div>
@@ -429,9 +431,8 @@
                 </div>
                 <div id="world_preset_rules" class="item-list compact-list">No world rules yet.</div>
             </article>
-        </section>
-
-        <section id="section_automations" class="section">
+            </div>
+            <div class="subtab-panel" data-subtab-panel="automations">
             <div class="section-toolbar">
                 <div>
                     <h3>Automations</h3>
@@ -458,6 +459,7 @@
                     </div>
                 </article>
             </div>
+            </div>
         </section>
 
         <section id="section_integrations" class="section">
@@ -477,9 +479,9 @@
                         <label class="field"><span>Now Playing source</span>
                             <select id="spotify_now_playing_method">
                                 {% if windows_media_available %}<option value="windows_media">Windows Media (automatic, recommended)</option>{% endif %}
+                                <option value="lastfm">Last.fm (recommended)</option>
                                 <option value="discord">Discord (easiest - no new account)</option>
-                                <option value="lastfm">Last.fm</option>
-                                <option value="spotify_api">Spotify Client ID/Secret (advanced)</option>
+                                <option value="spotify_api">Spotify Client ID/Secret (advanced, Premium only)</option>
                             </select>
                         </label>
                     </div>
@@ -495,7 +497,7 @@
                         <p class="field-note">Whatever you're listening to shows up here automatically. Only works while your Discord status is visible (not set to Invisible).</p>
                     </div>
                     <div id="spotify_lastfm_group">
-                        <p><strong>How to link Last.fm:</strong></p>
+                        <p><strong>⭐ Recommended.</strong> Easiest to set up and works for both Spotify Free and Premium.</p>
                         <ol class="steps">
                             <li>Don't have a Last.fm account? Create a free one at <a href="https://www.last.fm/join" target="_blank" rel="noopener">last.fm/join</a>.</li>
                             <li>Connect your music player to Last.fm so it reports what you're playing (called "scrobbling"). If you use Spotify, open the Spotify app on any device, go to <strong>Settings → Social → Last.fm</strong>, and connect your account. Other players have similar options, or use one of <a href="https://www.last.fm/about/trackmymusic" target="_blank" rel="noopener">Last.fm's official scrobbler apps</a>.</li>
@@ -508,6 +510,7 @@
                         <p class="field-note">This panel updates automatically once something you're scrobbling starts playing.</p>
                     </div>
                     <div id="spotify_client_setup_group">
+                        <p><strong>Note:</strong> This method only works with Spotify Premium. It's also the most accurate option since it connects directly to your Spotify account.</p>
                         <p>Create a free app at <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a>, add the Redirect URI shown below to it, then paste your Client ID and Client Secret here and click Connect Spotify.</p>
                         <label class="field"><span>Redirect URI to add in your Spotify app</span><input id="spotify_redirect_uri_display" type="text" readonly></label>
                         <label class="field"><span>Client ID</span><input id="spotify_client_id_setup" type="password" autocomplete="off" placeholder="Enter Client ID or leave blank to keep saved value"></label>
@@ -563,6 +566,8 @@
                     <div class="button-row wrap">
                         <button id="weather_temp_unit_save" class="secondary" type="button">Save temperature unit</button>
                     </div>
+                    <label class="field"><span>Clock format</span><select id="clock_format"><option value="12">12-hour (3:05 PM)</option><option value="24">24-hour (15:05)</option></select></label>
+                    <p class="field-note">Applies to the time line in your chatbox and the <code>{time}</code> variable.</p>
                 </details>
                 {% if not is_android %}
                 <details class="panel collapsible">
@@ -800,7 +805,13 @@
             </div>
         </section>
 
-        <section id="section_profiles" class="section">
+        <section id="section_account" class="section">
+            <div class="subtab-nav" data-subtab-group="account">
+                <button class="subtab-item active" data-subtab="profiles" type="button">Profiles</button>
+                <button class="subtab-item" data-subtab="logs" type="button">Logs</button>
+                <button class="subtab-item" data-subtab="settings" type="button">Settings</button>
+            </div>
+            <div class="subtab-panel active" data-subtab-panel="profiles">
             <div class="section-toolbar">
                 <div>
                     <h3>Profiles</h3>
@@ -813,9 +824,8 @@
                 <label class="field"><span>Description</span><input id="profile_description" type="text" placeholder="Shows music, hides private info"></label>
             </div>
             <div id="profile_list" class="item-list"></div>
-        </section>
-
-        <section id="section_logs" class="section">
+            </div>
+            <div class="subtab-panel" data-subtab-panel="logs">
             <div class="section-toolbar">
                 <div>
                     <h3>Logs and Diagnostics</h3>
@@ -833,9 +843,8 @@
                 <button class="filter" data-severity="error" type="button">Errors</button>
             </div>
             <div id="log_list" class="log-list"></div>
-        </section>
-
-        <section id="section_settings" class="section">
+            </div>
+            <div class="subtab-panel" data-subtab-panel="settings">
             <div class="dashboard-grid two">
                 <article class="panel">
                     <h3>OSC Connection</h3>
@@ -864,9 +873,15 @@
                     </div>
                 </article>
             </div>
+            </div>
         </section>
 
-        <section id="section_leaderboard" class="section">
+        <section id="section_community" class="section">
+            <div class="subtab-nav" data-subtab-group="community">
+                <button class="subtab-item active" data-subtab="leaderboard" type="button">Leaderboard</button>
+                <button class="subtab-item" data-subtab="patreon" type="button">Patreon Perks</button>
+            </div>
+            <div class="subtab-panel active" data-subtab-panel="leaderboard">
             <div class="dashboard-grid">
                 <article class="panel span-2">
                     <div class="panel-head">
@@ -898,40 +913,142 @@
                     <div id="donor_leaderboard_list" class="item-list compact-list">Loading...</div>
                 </article>
             </div>
-        </section>
-
-        <section id="section_patreon" class="section">
+            </div>
+            <div class="subtab-panel" data-subtab-panel="patreon">
             <div class="dashboard-grid">
-                <article class="panel span-2">
+                <article class="panel span-2 patreon-tier-header">
                     <div class="panel-head">
                         <div>
                             <h3>Patreon Perks</h3>
-                            <p>Supporter-exclusive customization for Basic, Ultra, and Extreme Supporter tiers.</p>
+                            <p>Each tier includes everything below it - Extreme Supporter unlocks all perks on this page.</p>
+                        </div>
+                        <a class="button-link patreon-support-link" href="https://www.patreon.com/cw/CrystalWareStudios/membership" target="_blank" rel="noopener" data-external-link="https://www.patreon.com/cw/CrystalWareStudios/membership">Support on Patreon</a>
+                    </div>
+                </article>
+
+                <article class="panel span-2">
+                    <div class="panel-head">
+                        <div>
+                            <h3><span class="patreon-tier-badge basic">Basic Supporter</span></h3>
+                            <p>App accent color and a colored name on the leaderboards.</p>
                         </div>
                     </div>
-                    <p id="patreon_perks_locked_note" class="field-note" style="display:none;">
-                        These perks unlock once you're an active Patreon supporter. Log in with Discord (top-right), then use <strong>Connect Patreon</strong> in the account menu.
-                    </p>
-                    <div id="patreon_perks_fields" style="display:none;">
-                        <div class="form-grid compact-fields">
-                            <label class="field"><span>Accent color</span><input id="patreon_button_color" type="color" value="#43b39f"></label>
-                            <label class="field"><span>Background image URL</span><input id="patreon_custom_background" type="text" placeholder="https://..."></label>
+                    <div id="patreon_tier_basic_wrap" class="patreon-perks-wrap">
+                        <div id="patreon_tier_basic_lock" class="patreon-perks-lock-overlay" style="display:none;">
+                            <div class="patreon-perks-lock-message">
+                                <strong>Basic Supporter unlocks this</strong>
+                                <p>Connect Patreon and support at any tier.</p>
+                                <div class="button-row wrap centered">
+                                    <button id="patreon_perks_unlock_btn" type="button">Connect Patreon</button>
+                                    <a class="secondary button-link" href="https://www.patreon.com/cw/CrystalWareStudios/membership" target="_blank" rel="noopener" data-external-link="https://www.patreon.com/cw/CrystalWareStudios/membership">See the tiers</a>
+                                </div>
+                            </div>
                         </div>
-                        <div class="button-row wrap">
-                            <button id="patreon_save_styling" type="button">Save app styling</button>
-                            <button id="patreon_reset_styling" class="secondary" type="button">Reset to default</button>
-                        </div>
-                        <h4>Leaderboard name color</h4>
-                        <p class="field-note">Shown to everyone viewing the leaderboard - a small badge of support.</p>
-                        <div class="form-grid compact-fields">
-                            <label class="field"><span>Name color</span><input id="patreon_leaderboard_color" type="color" value="#43b39f"></label>
-                        </div>
-                        <div class="button-row wrap">
-                            <button id="patreon_save_leaderboard_color" type="button">Save leaderboard color</button>
-                            <button id="patreon_reset_leaderboard_color" class="secondary" type="button">Remove color</button>
+                        <div id="patreon_tier_basic_fields" class="patreon-perks-fields">
+                            <div class="form-grid compact-fields">
+                                <label class="field"><span>Accent color</span><input id="patreon_button_color" type="color" value="#43b39f"></label>
+                            </div>
+                            <div class="patreon-color-preview-row">
+                                <span class="field-note">Preview:</span>
+                                <button id="patreon_button_color_preview" type="button" class="patreon-preview-btn" tabindex="-1">Sample button</button>
+                            </div>
+                            <div class="button-row wrap">
+                                <button id="patreon_save_styling" type="button">Save accent color</button>
+                                <button id="patreon_reset_styling" class="secondary" type="button">Reset to default</button>
+                            </div>
+                            <h4>Leaderboard name color</h4>
+                            <p class="field-note">Shown to everyone viewing the leaderboard - a small badge of support.</p>
+                            <div class="form-grid compact-fields">
+                                <label class="field"><span>Name color</span><input id="patreon_leaderboard_color" type="color" value="#43b39f"></label>
+                            </div>
+                            <div class="patreon-color-preview-row">
+                                <span class="field-note">Preview:</span>
+                                <div class="item patreon-preview-row">
+                                    <span>#1 <span id="patreon_leaderboard_color_preview">YourUsername</span></span>
+                                </div>
+                            </div>
+                            <div class="button-row wrap">
+                                <button id="patreon_save_leaderboard_color" type="button">Save leaderboard color</button>
+                                <button id="patreon_reset_leaderboard_color" class="secondary" type="button">Remove color</button>
+                            </div>
                         </div>
                     </div>
                 </article>
+
+                <article class="panel span-2">
+                    <div class="panel-head">
+                        <div>
+                            <h3><span class="patreon-tier-badge ultra">Ultra Supporter</span></h3>
+                            <p>Everything in Basic, plus a custom app background and a full-row leaderboard banner.</p>
+                        </div>
+                    </div>
+                    <div id="patreon_tier_ultra_wrap" class="patreon-perks-wrap">
+                        <div id="patreon_tier_ultra_lock" class="patreon-perks-lock-overlay" style="display:none;">
+                            <div class="patreon-perks-lock-message">
+                                <strong>Ultra Supporter unlocks this</strong>
+                                <p>Upgrade your pledge to unlock the background image and leaderboard banner.</p>
+                                <a class="button-link" href="https://www.patreon.com/cw/CrystalWareStudios/membership" target="_blank" rel="noopener" data-external-link="https://www.patreon.com/cw/CrystalWareStudios/membership">See the tiers</a>
+                            </div>
+                        </div>
+                        <div id="patreon_tier_ultra_fields" class="patreon-perks-fields">
+                            <div class="form-grid compact-fields">
+                                <label class="field"><span>Background image URL</span><input id="patreon_custom_background" type="text" placeholder="https://..."></label>
+                            </div>
+                            <div class="button-row wrap">
+                                <button id="patreon_save_background" type="button">Save background</button>
+                                <button id="patreon_reset_background" class="secondary" type="button">Remove background</button>
+                            </div>
+                            <h4>Leaderboard banner color</h4>
+                            <p class="field-note">Tints your entire row on the leaderboards, not just your name.</p>
+                            <div class="form-grid compact-fields">
+                                <label class="field"><span>Banner color</span><input id="patreon_leaderboard_banner_color" type="color" value="#43b39f"></label>
+                            </div>
+                            <div class="patreon-color-preview-row">
+                                <span class="field-note">Preview:</span>
+                                <div id="patreon_leaderboard_banner_color_preview" class="item patreon-preview-row">
+                                    <span>#1 YourUsername</span>
+                                </div>
+                            </div>
+                            <div class="button-row wrap">
+                                <button id="patreon_save_leaderboard_banner" type="button">Save banner color</button>
+                                <button id="patreon_reset_leaderboard_banner" class="secondary" type="button">Remove banner</button>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="panel span-2">
+                    <div class="panel-head">
+                        <div>
+                            <h3><span class="patreon-tier-badge extreme">Extreme Supporter</span></h3>
+                            <p>Everything in Ultra, plus full control over the app's background and text colors.</p>
+                        </div>
+                    </div>
+                    <div id="patreon_tier_extreme_wrap" class="patreon-perks-wrap">
+                        <div id="patreon_tier_extreme_lock" class="patreon-perks-lock-overlay" style="display:none;">
+                            <div class="patreon-perks-lock-message">
+                                <strong>Extreme Supporter unlocks this</strong>
+                                <p>The top tier - full theme control over how the whole app looks.</p>
+                                <a class="button-link" href="https://www.patreon.com/cw/CrystalWareStudios/membership" target="_blank" rel="noopener" data-external-link="https://www.patreon.com/cw/CrystalWareStudios/membership">See the tiers</a>
+                            </div>
+                        </div>
+                        <div id="patreon_tier_extreme_fields" class="patreon-perks-fields">
+                            <div class="form-grid compact-fields">
+                                <label class="field"><span>App background color</span><input id="patreon_surface_color" type="color" value="#111318"></label>
+                                <label class="field"><span>App text color</span><input id="patreon_text_color" type="color" value="#eef2f5"></label>
+                            </div>
+                            <div class="patreon-color-preview-row">
+                                <span class="field-note">Preview:</span>
+                                <div id="patreon_theme_preview" class="patreon-theme-preview">Sample text on your theme</div>
+                            </div>
+                            <div class="button-row wrap">
+                                <button id="patreon_save_theme" type="button">Save theme</button>
+                                <button id="patreon_reset_theme" class="secondary" type="button">Reset to default</button>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div>
             </div>
         </section>
 
@@ -1150,7 +1267,7 @@
                     <h3>About</h3>
                     <p><strong>Crystal Chatbox</strong> by CrystalWare Studios</p>
                     <p class="field-note">Started in 2025. A VRChat chatbox control center - rotating custom messages, live world/instance detection, Spotify, weather, heart rate, {% if is_android %}Quest headset battery{% else %}system stats, VR headset/controller battery{% endif %}, gesture reactions, and more, all sent to VRChat's chatbox over OSC.</p>
-                    <p><strong>Need help or want to join the community?</strong> <a href="https://discord.gg/uxPdvQkfP5" target="_blank" rel="noopener" data-external-link="https://discord.gg/uxPdvQkfP5">Join the Discord</a> - <a href="https://vrchat.com/home/group/grp_7cd8b94f-90e7-4a86-8ce6-39c4d632fa8b" target="_blank" rel="noopener" data-external-link="https://vrchat.com/home/group/grp_7cd8b94f-90e7-4a86-8ce6-39c4d632fa8b">Join our VRChat group</a></p>
+                    <p><strong>Need help or want to join the community?</strong> <a href="https://discord.gg/uxPdvQkfP5" target="_blank" rel="noopener" data-external-link="https://discord.gg/uxPdvQkfP5">Join the Discord</a> - <a href="https://vrchat.com/home/group/grp_7cd8b94f-90e7-4a86-8ce6-39c4d632fa8b" target="_blank" rel="noopener" data-external-link="https://vrchat.com/home/group/grp_7cd8b94f-90e7-4a86-8ce6-39c4d632fa8b">Join our VRChat group</a> - <a href="https://www.patreon.com/cw/CrystalWareStudios/membership" target="_blank" rel="noopener" data-external-link="https://www.patreon.com/cw/CrystalWareStudios/membership">Support on Patreon</a></p>
                     {% if not is_android %}
                     <dl class="status-list">
                         <div><dt>Version</dt><dd id="update_current_version">-</dd></div>
@@ -1162,6 +1279,10 @@
                         <a id="update_manual_link" class="secondary" href="https://github.com/CrystalWare-Studios/Crystal-Chatbox-2026/releases" target="_blank" rel="noopener" style="display:none;">Download manually</a>
                     </div>
                     {% endif %}
+                    <div class="button-row wrap">
+                        <button id="changelog_toggle_btn" class="secondary" type="button">What's new</button>
+                    </div>
+                    <div id="changelog_body" class="changelog-body" style="display:none;">Loading...</div>
                 </article>
             </div>
         </section>
@@ -1175,6 +1296,19 @@
             <button class="icon-button" data-vrchat-preview-close type="button" aria-label="Close preview">x</button>
         </div>
         <div id="vrchat_preview_body" class="vrchat-preview-body"></div>
+    </div>
+</dialog>
+
+<dialog id="whats_new_dialog" class="setup-dialog whats-new-dialog">
+    <div class="wizard">
+        <div class="wizard-head">
+            <h3>What's new</h3>
+            <button id="whats_new_close" class="icon-button" aria-label="Close" type="button">x</button>
+        </div>
+        <div id="whats_new_body" class="changelog-body">Loading...</div>
+        <div class="button-row wrap">
+            <button id="whats_new_dismiss" type="button">Got it</button>
+        </div>
     </div>
 </dialog>
 
